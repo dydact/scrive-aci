@@ -1,0 +1,548 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>American Caregivers Inc - Quality Care for Children & Adults with Disabilities</title>
+    <meta name="description" content="American Caregivers provides autism waiver services, developmental disabilities support, and quality care across Maryland. Serving Montgomery, PG, Howard, Anne Arundel, Baltimore Counties.">
+    <link rel="icon" type="image/x-icon" href="/assets/images/favicon.ico">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        :root {
+            --primary-color: #059669;
+            --secondary-color: #2563eb;
+            --accent-color: #f59e0b;
+            --text-color: #1e293b;
+            --light-bg: #f8fafc;
+            --border-color: #e2e8f0;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            line-height: 1.6;
+            color: var(--text-color);
+        }
+        
+        /* Header & Navigation */
+        .header {
+            background: white;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            position: sticky;
+            top: 0;
+            z-index: 1000;
+        }
+        
+        .nav-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 1rem 2rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            text-decoration: none;
+            color: var(--primary-color);
+        }
+        
+        .logo img {
+            height: 50px;
+        }
+        
+        .logo-text {
+            font-size: 1.5rem;
+            font-weight: 700;
+        }
+        
+        .nav-menu {
+            display: flex;
+            list-style: none;
+            gap: 2rem;
+            align-items: center;
+        }
+        
+        .nav-menu a {
+            text-decoration: none;
+            color: var(--text-color);
+            font-weight: 500;
+            transition: color 0.3s;
+        }
+        
+        .nav-menu a:hover {
+            color: var(--primary-color);
+        }
+        
+        .staff-login-btn {
+            background: var(--primary-color);
+            color: white;
+            padding: 0.5rem 1.5rem;
+            border-radius: 8px;
+            text-decoration: none;
+            font-weight: 600;
+            transition: all 0.3s;
+        }
+        
+        .staff-login-btn:hover {
+            background: #047857;
+            transform: translateY(-1px);
+        }
+        
+        /* Mobile Menu */
+        .mobile-menu-toggle {
+            display: none;
+            background: none;
+            border: none;
+            font-size: 1.5rem;
+            cursor: pointer;
+        }
+        
+        /* Hero Section */
+        .hero {
+            background: linear-gradient(135deg, var(--primary-color), #047857);
+            color: white;
+            padding: 5rem 2rem;
+            text-align: center;
+        }
+        
+        .hero-content {
+            max-width: 800px;
+            margin: 0 auto;
+        }
+        
+        .hero h1 {
+            font-size: 3rem;
+            margin-bottom: 1.5rem;
+            line-height: 1.2;
+        }
+        
+        .hero p {
+            font-size: 1.25rem;
+            margin-bottom: 2rem;
+            opacity: 0.9;
+        }
+        
+        .hero-actions {
+            display: flex;
+            gap: 1rem;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+        
+        .btn {
+            padding: 1rem 2rem;
+            border-radius: 8px;
+            text-decoration: none;
+            font-weight: 600;
+            transition: all 0.3s;
+            display: inline-block;
+        }
+        
+        .btn-primary {
+            background: white;
+            color: var(--primary-color);
+        }
+        
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        }
+        
+        .btn-secondary {
+            background: transparent;
+            color: white;
+            border: 2px solid white;
+        }
+        
+        .btn-secondary:hover {
+            background: white;
+            color: var(--primary-color);
+        }
+        
+        /* Services Section */
+        .services {
+            padding: 5rem 2rem;
+            background: var(--light-bg);
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        
+        .section-title {
+            text-align: center;
+            font-size: 2.5rem;
+            margin-bottom: 3rem;
+            color: var(--text-color);
+        }
+        
+        .services-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 2rem;
+        }
+        
+        .service-card {
+            background: white;
+            padding: 2rem;
+            border-radius: 12px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            transition: all 0.3s;
+            border-top: 4px solid var(--primary-color);
+        }
+        
+        .service-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 4px 16px rgba(0,0,0,0.15);
+        }
+        
+        .service-card h3 {
+            color: var(--primary-color);
+            margin-bottom: 1rem;
+            font-size: 1.5rem;
+        }
+        
+        .service-card p {
+            color: #64748b;
+            line-height: 1.6;
+        }
+        
+        /* Contact Section */
+        .contact {
+            padding: 5rem 2rem;
+            background: white;
+        }
+        
+        .offices-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 3rem;
+            margin-top: 3rem;
+        }
+        
+        .office-card {
+            text-align: center;
+        }
+        
+        .office-card h3 {
+            color: var(--primary-color);
+            margin-bottom: 1rem;
+            font-size: 1.5rem;
+        }
+        
+        .office-card p {
+            color: #64748b;
+            line-height: 1.8;
+        }
+        
+        .office-card .phone {
+            color: var(--secondary-color);
+            font-weight: 600;
+            font-size: 1.25rem;
+            margin-top: 1rem;
+        }
+        
+        /* Footer */
+        .footer {
+            background: #1e293b;
+            color: white;
+            padding: 3rem 2rem 1rem;
+        }
+        
+        .footer-content {
+            max-width: 1200px;
+            margin: 0 auto;
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 3rem;
+            margin-bottom: 2rem;
+        }
+        
+        .footer-section h4 {
+            margin-bottom: 1rem;
+            color: white;
+        }
+        
+        .footer-section ul {
+            list-style: none;
+        }
+        
+        .footer-section a {
+            color: #cbd5e1;
+            text-decoration: none;
+            line-height: 2;
+            transition: color 0.3s;
+        }
+        
+        .footer-section a:hover {
+            color: white;
+        }
+        
+        .social-links {
+            display: flex;
+            gap: 1rem;
+            margin-top: 1rem;
+        }
+        
+        .social-links a {
+            width: 40px;
+            height: 40px;
+            background: rgba(255,255,255,0.1);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.3s;
+        }
+        
+        .social-links a:hover {
+            background: var(--primary-color);
+            transform: translateY(-2px);
+        }
+        
+        .footer-bottom {
+            text-align: center;
+            padding-top: 2rem;
+            border-top: 1px solid rgba(255,255,255,0.1);
+            color: #94a3b8;
+        }
+        
+        /* Mobile Responsive */
+        @media (max-width: 768px) {
+            .nav-menu {
+                display: none;
+                position: absolute;
+                top: 100%;
+                left: 0;
+                right: 0;
+                background: white;
+                flex-direction: column;
+                padding: 1rem;
+                box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            }
+            
+            .nav-menu.active {
+                display: flex;
+            }
+            
+            .mobile-menu-toggle {
+                display: block;
+            }
+            
+            .hero h1 {
+                font-size: 2rem;
+            }
+            
+            .hero p {
+                font-size: 1rem;
+            }
+            
+            .hero-actions {
+                flex-direction: column;
+                align-items: center;
+            }
+            
+            .btn {
+                width: 100%;
+                max-width: 300px;
+            }
+        }
+        
+        /* Staff Quick Access (for logged-in users) */
+        .staff-quick-access {
+            background: var(--accent-color);
+            color: white;
+            padding: 0.5rem;
+            text-align: center;
+            font-weight: 600;
+        }
+        
+        .staff-quick-access a {
+            color: white;
+            text-decoration: underline;
+        }
+    </style>
+</head>
+<body>
+    <!-- Staff Quick Access Bar (shown only for logged-in staff) -->
+    <!-- <?php if ($showStaffQuickAccess): ?>
+    <div class="staff-quick-access">
+        📱 Welcome back! <a href="/scrive/mobile_employee_portal.php">Access your mobile portal</a>
+    </div>
+    <?php endif; ?> -->
+    
+    <!-- Header -->
+    <header class="header">
+        <nav class="nav-container">
+            <a href="/" class="logo">
+                <span class="logo-text">🤝 American Caregivers Inc</span>
+            </a>
+            
+            <ul class="nav-menu" id="navMenu">
+                <li><a href="/">Home</a></li>
+                <li><a href="/about">About Us</a></li>
+                <li><a href="/services">Services</a></li>
+                <li><a href="/careers">Careers</a></li>
+                <li><a href="/resources">Resources</a></li>
+                <li><a href="/gallery">Gallery</a></li>
+                <li><a href="/blog">Blog</a></li>
+                <li><a href="/contact">Contact</a></li>
+                <li><a href="/scrive/login.php" class="staff-login-btn">Staff Login</a></li>
+            </ul>
+            
+            <button class="mobile-menu-toggle" onclick="toggleMenu()">☰</button>
+        </nav>
+    </header>
+    
+    <!-- Hero Section -->
+    <section class="hero">
+        <div class="hero-content">
+            <h1>Quality Care Provision for Children and Adults with Disabilities</h1>
+            <p>Serving Maryland communities with compassionate autism waiver and developmental disability services since 2015</p>
+            <div class="hero-actions">
+                <a href="/services" class="btn btn-primary">Explore Our Services</a>
+                <a href="application_form.php" class="btn btn-secondary">Apply for Services</a>
+            </div>
+        </div>
+    </section>
+    
+    <!-- Services Section -->
+    <section class="services">
+        <div class="container">
+            <h2 class="section-title">Our Programs</h2>
+            <div class="services-grid">
+                <div class="service-card">
+                    <h3>Autism Waiver (AW)</h3>
+                    <p>Comprehensive support services including Individual Intensive Support Services (IISS), Therapeutic Integration (TI), Respite Care, and Family Consultation to help individuals with autism thrive.</p>
+                </div>
+                <div class="service-card">
+                    <h3>DDA Services</h3>
+                    <p>Developmental Disabilities Administration programs providing community support and residential habilitation for individuals with developmental disabilities.</p>
+                </div>
+                <div class="service-card">
+                    <h3>Community First Choice</h3>
+                    <p>Personal care and companion services designed to support independent living and community integration for eligible individuals.</p>
+                </div>
+                <div class="service-card">
+                    <h3>Community Services</h3>
+                    <p>Life skills training and behavioral support programs to enhance independence and quality of life for our clients.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+    
+    <!-- Contact Section -->
+    <section class="contact">
+        <div class="container">
+            <h2 class="section-title">Get in Touch</h2>
+            <p style="text-align: center; color: #64748b; margin-bottom: 2rem;">
+                Connect with us for quality care provision for children and adults with disabilities
+            </p>
+            <div class="offices-grid">
+                <div class="office-card">
+                    <h3>Silver Spring Administrative Office</h3>
+                    <p>
+                        2301 Broadbirch Dr., Suite 135<br>
+                        Silver Spring, MD 20904
+                    </p>
+                    <p class="phone">📞 301-408-0100</p>
+                    <p>Fax: 301-408-0189</p>
+                </div>
+                <div class="office-card">
+                    <h3>Columbia Office</h3>
+                    <p>
+                        10715 Charter Drive, Ste. 100<br>
+                        Columbia, MD 21044
+                    </p>
+                    <p class="phone">📞 301-301-0123</p>
+                    <p>Fax: 301-301-1077</p>
+                </div>
+            </div>
+            <div style="text-align: center; margin-top: 3rem;">
+                <h3 style="color: var(--primary-color); margin-bottom: 1rem;">Office Hours</h3>
+                <p style="color: #64748b;">
+                    Monday - Friday: 9:00 AM - 6:00 PM<br>
+                    Saturday - Sunday: 10:00 AM - 6:00 PM
+                </p>
+            </div>
+        </div>
+    </section>
+    
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="footer-content">
+            <div class="footer-section">
+                <h4>Quick Links</h4>
+                <ul>
+                    <li><a href="/about">About Us</a></li>
+                    <li><a href="/services">Our Services</a></li>
+                    <li><a href="/careers">Career Opportunities</a></li>
+                    <li><a href="/privacy-policy">Privacy Policy</a></li>
+                    <li><a href="/scrive/login.php">Employee Portal</a></li>
+                </ul>
+            </div>
+            <div class="footer-section">
+                <h4>Service Areas</h4>
+                <p style="color: #cbd5e1; line-height: 1.8;">
+                    Montgomery County<br>
+                    Prince George's County<br>
+                    Howard County<br>
+                    Anne Arundel County<br>
+                    Baltimore County<br>
+                    Baltimore City
+                </p>
+            </div>
+            <div class="footer-section">
+                <h4>Contact Information</h4>
+                <p style="color: #cbd5e1; line-height: 1.8;">
+                    <strong>Email:</strong><br>
+                    American.caregiversinc@gmail.com<br>
+                    contact@acgcares.com<br><br>
+                    <strong>Phone:</strong><br>
+                    301-408-0100 | 301-301-0123
+                </p>
+            </div>
+            <div class="footer-section">
+                <h4>Connect With Us</h4>
+                <p style="color: #cbd5e1; margin-bottom: 1rem;">
+                    Follow us on social media for updates and news
+                </p>
+                <div class="social-links">
+                    <a href="#" aria-label="Facebook">f</a>
+                    <a href="#" aria-label="Twitter">t</a>
+                    <a href="#" aria-label="Instagram">i</a>
+                </div>
+            </div>
+        </div>
+        <div class="footer-bottom">
+            <p>&copy; 2025 American Caregivers, Inc. All rights reserved. | Designed by Proweaver</p>
+        </div>
+    </footer>
+    
+    <script>
+        function toggleMenu() {
+            const navMenu = document.getElementById('navMenu');
+            navMenu.classList.toggle('active');
+        }
+        
+        // Close mobile menu when clicking outside
+        document.addEventListener('click', function(event) {
+            const navMenu = document.getElementById('navMenu');
+            const menuToggle = document.querySelector('.mobile-menu-toggle');
+            
+            if (!navMenu.contains(event.target) && !menuToggle.contains(event.target)) {
+                navMenu.classList.remove('active');
+            }
+        });
+    </script>
+</body>
+</html> 
