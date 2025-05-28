@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/sh
 # Script to run iris database customization
 
 # Enable debugging if needed
