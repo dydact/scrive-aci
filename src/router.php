@@ -24,20 +24,24 @@ $routes = [
 // Check if route exists
 if (array_key_exists($path, $routes)) {
     $file = $routes[$path];
-    if (file_exists($file)) {
-        include $file;
+    // Files are in the root directory, which is one level up from src/
+    $filePath = __DIR__ . '/../' . $file;
+    if (file_exists($filePath)) {
+        include $filePath;
         return true;
     }
 }
 
-// Check if it's a direct file request
-if (file_exists($path)) {
+// Check if it's a direct file request (relative to root)
+if (file_exists($_SERVER['DOCUMENT_ROOT'] . '/' . $path)) {
     return false; // Let PHP serve the file directly
 }
 
-// Check for static assets
+// Check for static assets (relative to root)
 if (preg_match('/\.(css|js|png|jpg|jpeg|gif|svg|ico|pdf|txt)$/', $path)) {
-    return false; // Let PHP serve static files directly
+    if (file_exists($_SERVER['DOCUMENT_ROOT'] . '/' . $path)) {
+        return false; // Let PHP serve static files directly from root
+    }
 }
 
 // 404 for unknown routes

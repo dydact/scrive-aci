@@ -1,6 +1,7 @@
 <?php
 session_start();
-require_once 'config_sqlite.php';
+require_once '../src/config.php';
+require_once '../src/openemr_integration.php';
 
 // Check if user is logged in
 if (!isset($_SESSION['user_id'])) {

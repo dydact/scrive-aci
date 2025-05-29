@@ -475,12 +475,9 @@
                             <li><a href="/">Home</a></li>
                             <li class="current-menu-item"><a href="/about">About Us</a></li>
                             <li><a href="/services">Services</a></li>
-                            <li><a href="/careers">Careers</a></li>
-                            <li><a href="/resources">Resources</a></li>
-                            <li><a href="/gallery">Gallery</a></li>
-                            <li><a href="/blog">Blog</a></li>
                             <li><a href="/contact">Contact Us</a></li>
-                            <li><a href="login_sqlite.php" style="background: var(--aci-red); border-radius: 5px;">Staff Login</a></li>
+                            <li><a href="/application_form">Apply Now</a></li>
+                            <li><a href="src/login.php" style="background: var(--aci-red); border-radius: 5px;">Staff Login</a></li>
                         </ul>
                     </div>
                     <button class="mobile-menu-toggle" onclick="toggleMenu()">☰</button>
@@ -643,7 +640,7 @@
                             <li><a href="/services">Our Services</a></li>
                             <li><a href="application_form.php">Apply for Employment</a></li>
                             <li><a href="/privacy-policy">Privacy Policy</a></li>
-                            <li><a href="login_sqlite.php">Employee Portal</a></li>
+                            <li><a href="src/login.php">Employee Portal</a></li>
                         </ul>
                     </div>
                     <div class="footer_section">
@@ -669,7 +666,7 @@
                     <div class="footer_section">
                         <h4>Staff Resources</h4>
                         <ul>
-                            <li><a href="login_sqlite.php">Staff Login Portal</a></li>
+                            <li><a href="src/login.php">Staff Login Portal</a></li>
                             <li><a href="autism_waiver_app/mobile_employee_portal.php">Mobile Portal</a></li>
                             <li><a href="/training">Training Resources</a></li>
                             <li><a href="/policies">Company Policies</a></li>

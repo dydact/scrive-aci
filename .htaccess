@@ -1,0 +1,20 @@
+   RewriteEngine On
+   SetEnvIf Authorization "(.*)" HTTP_AUTHORIZATION=$1
+
+   # Don't remove .php extension for src/ directory (backend files)
+   RewriteCond %{THE_REQUEST} ^[A-Z]+\s([^\s]+)\.php[\s?] [NC]
+   RewriteCond %{REQUEST_URI} !^/src/
+   RewriteRule ^ /%1 [R=301,L]
+
+   # Internally map /page to page.php if page.php exists (excluding src/)
+   RewriteCond %{REQUEST_FILENAME} !-d
+   RewriteCond %{REQUEST_FILENAME} !-f
+   RewriteCond %{REQUEST_FILENAME}.php -f
+   RewriteCond %{REQUEST_URI} !^/src/
+   RewriteRule ^(.*)$ $1.php [L]
+
+   # Route everything else through authorize.php for OpenEMR compatibility
+   RewriteCond %{REQUEST_FILENAME} !-f
+   RewriteCond %{REQUEST_FILENAME} !-d
+   RewriteCond %{REQUEST_FILENAME} !-l
+   RewriteRule (.*) authorize.php?_REWRITE_COMMAND=$1 [QSA,L]

@@ -1,6 +1,7 @@
 <?php
 session_start();
-require_once 'config_sqlite.php';
+require_once 'config.php';
+require_once 'openemr_integration.php';
 
 $error = null;
 $success = null;
@@ -13,7 +14,7 @@ if (isset($_GET['action']) && $_GET['action'] === 'logout') {
 
 // Check if already logged in
 if (isset($_SESSION['user_id'])) {
-    header('Location: index_sqlite.php');
+    header('Location: dashboard.php');
     exit;
 }
 
@@ -27,40 +28,36 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             throw new Exception("Please enter both username and password.");
         }
         
-        $pdo = getDatabase();
+        // Use OpenEMR-compatible authentication
+        $user = authenticateOpenEMRUser($username, $password);
         
-        // Get user with role information
-        $stmt = $pdo->prepare("
-            SELECT 
-                u.id, u.username, u.password_hash, u.staff_id,
-                s.first_name, s.last_name, s.email, s.job_title,
-                r.role_name, r.access_level
-            FROM autism_users u
-            JOIN autism_staff_members s ON u.staff_id = s.id
-            JOIN autism_user_roles ur ON u.id = ur.user_id
-            JOIN autism_staff_roles r ON ur.role_id = r.id
-            WHERE u.username = ? AND u.is_active = 1
-        ");
-        $stmt->execute([$username]);
-        $user = $stmt->fetch(PDO::FETCH_ASSOC);
-        
-        if (!$user || !password_verify($password, $user['password_hash'])) {
+        if (!$user) {
             throw new Exception("Invalid username or password.");
         }
         
         // Set session variables
-        $_SESSION['user_id'] = $user['id'];
+        $_SESSION['user_id'] = $user['user_id'];
         $_SESSION['username'] = $user['username'];
-        $_SESSION['staff_id'] = $user['staff_id'];
         $_SESSION['first_name'] = $user['first_name'];
         $_SESSION['last_name'] = $user['last_name'];
         $_SESSION['email'] = $user['email'];
-        $_SESSION['job_title'] = $user['job_title'];
-        $_SESSION['role_name'] = $user['role_name'];
         $_SESSION['access_level'] = $user['access_level'];
         $_SESSION['login_time'] = time();
         
-        header('Location: index_sqlite.php');
+        // Set additional fields if available
+        if (isset($user['staff_id'])) {
+            $_SESSION['staff_id'] = $user['staff_id'];
+        }
+        if (isset($user['job_title'])) {
+            $_SESSION['job_title'] = $user['job_title'];
+        }
+        if (isset($user['role_name'])) {
+            $_SESSION['role_name'] = $user['role_name'];
+        } else {
+            $_SESSION['role_name'] = $user['title'] ?? 'User';
+        }
+        
+        header('Location: dashboard.php');
         exit;
         
     } catch (Exception $e) {
@@ -245,7 +242,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         .forgot-password a:hover {
             text-decoration: underline;
         }
+        
+        .openemr-note {
+            background: #f0f9ff;
+            border: 1px solid #0ea5e9;
+            color: #0c4a6e;
+            padding: 1rem;
+            border-radius: 8px;
+            margin-bottom: 1rem;
+            font-size: 0.875rem;
+        }
     </style>
+    <script src="/public/assets/js/interactive-help.js"></script>
 </head>
 <body>
     <div class="login-container">
@@ -255,6 +263,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             </div>
             <div class="company-name">American Caregivers, Inc.</div>
             <div class="tagline">Setting the Standard of Quality Care</div>
+        </div>
+        
+        <div class="openemr-note" style="display: none;">
+            <!-- Note: System is integrated with OpenEMR but this is hidden from users -->
         </div>
         
         <?php if ($error): ?>
@@ -279,14 +291,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 </div>
             </div>
             
-            <button type="submit" class="login-btn">Login</button>
+            <button type="submit" class="login-btn" id="login-button">Login</button>
         </form>
         
         <div class="forgot-password">
             <a href="password_reset.php">Forgot your password?</a>
         </div>
         
-        <a href="index.php" class="back-link">← Back to Website</a>
+        <div style="margin-top: 1rem; text-align: center;">
+            <a href="/help_center.php" class="back-link" style="margin-right: 1rem;">📚 Help Center</a>
+            <a href="/index.php" class="back-link">← Back to Website</a>
+        </div>
     </div>
     
     <script>

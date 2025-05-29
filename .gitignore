@@ -1,0 +1,44 @@
+# Ignore sensitive data files
+secure_data/
+*.csv
+# Ignore any files with SSN or sensitive data
+*SSN*
+*ssn*
+employee_data/
+client_data/
+
+# Environment files
+.env
+.env.local
+.env.production
+
+# Database files
+*.db
+*.sqlite
+*.sqlite3
+
+# Logs
+logs/
+*.log
+
+# Temporary files
+*.tmp
+*.temp
+*.swp
+*.swo
+*~
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# IDE files
+.vscode/
+.idea/
+*.sublime-*
+
+# Build files
+node_modules/
+vendor/
+dist/
+build/

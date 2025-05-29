@@ -190,7 +190,7 @@
     </header>
     
     <div class="container">
-        <a href="index.php" class="back-link">← Back to Website</a>
+        <a href="/" class="back-link">← Back to Website</a>
         
         <div class="form-header">
             <h1>Employment Application</h1>

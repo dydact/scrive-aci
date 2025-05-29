@@ -1,3 +1,5 @@
+version: '3.8'
+
 services:
   mysql:
     restart: always
@@ -7,9 +9,11 @@ services:
       - databasevolume:/var/lib/mysql
     environment:
       MYSQL_ROOT_PASSWORD: root
-      MYSQL_DATABASE: aci-EMR
-      MYSQL_USER: admin
-      MYSQL_PASSWORD: iris
+      MYSQL_DATABASE: openemr
+      MYSQL_USER: openemr
+      MYSQL_PASSWORD: openemr
+    ports:
+      - "3306:3306"
     networks:
       - aci-network
 
@@ -19,19 +23,27 @@ services:
       dockerfile: Dockerfile
     restart: always
     ports:
-      - 80:80
-      - 443:443
+      - "${HOST_HTTP_PORT:-8080}:80"
+      - "${HOST_HTTPS_PORT:-8443}:443"
     volumes:
       - logvolume:/var/log
-      - sitevolume:/var/www/localhost/htdocs/iris/sites
+      - sitevolume:/var/www/localhost/htdocs/openemr/sites
+      - uploadvolume:/var/www/localhost/htdocs/uploads
     environment:
       MYSQL_HOST: mysql
-      MYSQL_ROOT_PASS: root
-      MYSQL_USER: admin
-      MYSQL_PASS: iris
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_USER: openemr
+      MYSQL_PASSWORD: openemr
+      MYSQL_DATABASE: openemr
       OE_USER: admin
       OE_PASS: pass
       SITE: americancaregivers
+      # Application environment
+      DB_HOST: mysql
+      DB_NAME: openemr
+      DB_USER: openemr
+      DB_PASS: openemr
+      APP_ENV: development
     depends_on:
       - mysql
     networks:
@@ -41,7 +53,9 @@ volumes:
   logvolume: {}
   sitevolume: {}
   databasevolume: {}
+  uploadvolume: {}
 
 networks:
   aci-network:
-    driver: bridge 
+    driver: bridge
+

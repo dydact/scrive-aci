@@ -1,6 +1,6 @@
 FROM openemr/openemr:7.0.2
 
-LABEL maintainer="dydact LLMs <support@dydact.ai>"
+LABEL maintainer="dydact <auto@dydact.io>"
 LABEL description="Scrive ACI - American Caregivers Healthcare Management System"
 LABEL version="1.0.0"
 
@@ -23,23 +23,28 @@ RUN sed -i 's/\$allow_multisite_setup = false;/\$allow_multisite_setup = true;/'
 # Copy SQL customization script
 COPY sql/iris-database-customization.sql /docker-entrypoint-initdb.d/
 
-# Copy Scrive interface files to web root
+# Copy public interface files to web root
 COPY index.php /var/www/localhost/htdocs/
-COPY login_sqlite.php /var/www/localhost/htdocs/
-COPY index_sqlite.php /var/www/localhost/htdocs/
-COPY config_sqlite.php /var/www/localhost/htdocs/
 COPY about.php /var/www/localhost/htdocs/
 COPY services.php /var/www/localhost/htdocs/
 COPY contact.php /var/www/localhost/htdocs/
 COPY application_form.php /var/www/localhost/htdocs/
-COPY controller.php /var/www/localhost/htdocs/
-COPY router.php /var/www/localhost/htdocs/
+COPY authorize.php /var/www/localhost/htdocs/
+COPY .htaccess /var/www/localhost/htdocs/
+
+# Copy backend src directory (secured)
+COPY src /var/www/localhost/htdocs/src
 
 # Copy autism waiver app
 COPY autism_waiver_app /var/www/localhost/htdocs/autism_waiver_app
 
 # Copy public assets
 COPY public /var/www/localhost/htdocs/public
+
+# Copy setup and automation scripts
+COPY setup_production.php /var/www/localhost/htdocs/
+COPY scripts /var/www/localhost/htdocs/scripts
+RUN chmod +x /var/www/localhost/htdocs/scripts/*.sh
 
 # Generate self-signed SSL certificates
 RUN mkdir -p /etc/ssl/certs && \
@@ -51,12 +56,23 @@ RUN mkdir -p /etc/ssl/certs && \
 # Copy Apache configuration
 COPY apache/iris.conf /etc/apache2/conf.d/
 
+# Enable Apache modules needed for the application
+RUN sed -i '/LoadModule rewrite_module/s/^#//g' /etc/apache2/httpd.conf
+
 # Disable OpenEMR configuration that overrides DocumentRoot
 RUN mv /etc/apache2/conf.d/openemr.conf /etc/apache2/conf.d/openemr.conf.disabled
 
+# Create necessary directories for application
+RUN mkdir -p /var/www/localhost/htdocs/uploads && \
+    mkdir -p /var/www/localhost/htdocs/logs && \
+    chown -R apache:apache /var/www/localhost/htdocs/uploads && \
+    chown -R apache:apache /var/www/localhost/htdocs/logs
+
 # Set proper permissions for web files
 RUN chown -R apache:apache /var/www/localhost/htdocs/ && \
-    chmod -R 755 /var/www/localhost/htdocs/
+    chmod -R 755 /var/www/localhost/htdocs/ && \
+    chmod 755 /var/www/localhost/htdocs/src && \
+    chmod 644 /var/www/localhost/htdocs/src/*.php
 
 EXPOSE 80 443
 

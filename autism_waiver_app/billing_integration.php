@@ -30,18 +30,39 @@ class MedicaidBillingIntegration {
     ];
     
     public function __construct() {
-        $this->db = new PDO("mysql:host=localhost;dbname=autism_waiver", "root", "");
+        // Use environment variables for database connection
+        $database = getenv('MARIADB_DATABASE') ?: 'iris';
+        $username = getenv('MARIADB_USER') ?: 'iris_user';
+        $password = getenv('MARIADB_PASSWORD') ?: '';
+        $host = getenv('MARIADB_HOST') ?: 'localhost';
+        
+        $this->db = new PDO("mysql:host=$host;dbname=$database;charset=utf8mb4", $username, $password);
         $this->db->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
         
         $this->config = [
-            'medicaid_provider_id' => '1234567890', // ACI's Medicaid Provider ID
-            'npi' => '1234567890', // National Provider Identifier
+            'medicaid_provider_id' => getenv('MEDICAID_PROVIDER_ID') ?: $this->getOrgSetting('medicaid_provider_id'),
+            'npi' => getenv('PROVIDER_NPI') ?: $this->getOrgSetting('npi'),
             'taxonomy_code' => '261QM0850X', // Medical Specialty Code
             'organization_name' => 'American Caregivers Inc',
             'evs_endpoint' => 'https://encrypt.emdhealthchoice.org/emedicaid/',
             'claims_endpoint' => 'https://claims.maryland.gov/submit',
             'crisp_endpoint' => 'https://portal.crisphealth.org/api'
         ];
+    }
+    
+    /**
+     * Get organization setting from database
+     */
+    private function getOrgSetting($key) {
+        try {
+            $stmt = $this->db->prepare("SELECT value FROM organization_settings WHERE setting_key = ? LIMIT 1");
+            $stmt->execute([$key]);
+            $result = $stmt->fetch(PDO::FETCH_ASSOC);
+            return $result['value'] ?? '';
+        } catch (Exception $e) {
+            error_log("Failed to get org setting: " . $e->getMessage());
+            return '';
+        }
     }
     
     /**
@@ -52,7 +73,7 @@ class MedicaidBillingIntegration {
             // Get client information
             $stmt = $this->db->prepare("
                 SELECT ma_number, first_name, last_name, date_of_birth 
-                FROM autism_clients 
+                FROM clients 
                 WHERE id = ?
             ");
             $stmt->execute([$client_id]);
@@ -83,12 +104,22 @@ class MedicaidBillingIntegration {
         // In production, this would make actual API call to Maryland EVS
         // For testing, we'll simulate the response
         
-        $eligible_ma_numbers = [
-            '410608300', '410608301', '522902200', '433226100', // Org numbers (should not be used for clients)
-            '123456789', '987654321', '456789123', '789123456', '321654987' // Sample client MA numbers
-        ];
-        
-        $is_eligible = in_array($ma_number, $eligible_ma_numbers);
+        // Check database for client eligibility
+        try {
+            $stmt = $this->db->prepare("
+                SELECT * FROM client_eligibility 
+                WHERE ma_number = ? 
+                AND ? BETWEEN start_date AND end_date
+                AND status = 'active'
+            ");
+            $stmt->execute([$ma_number, $service_date]);
+            $eligibility = $stmt->fetch(PDO::FETCH_ASSOC);
+            
+            $is_eligible = !empty($eligibility);
+        } catch (Exception $e) {
+            error_log("EVS lookup error: " . $e->getMessage());
+            $is_eligible = false;
+        }
         
         return [
             'eligible' => $is_eligible,
