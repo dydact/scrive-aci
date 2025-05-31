@@ -1,59 +1,64 @@
 <?php
+require_once '../src/init.php';
+requireAuth(3); // Case Manager+ access
 
-/**
- * Billing Dashboard - Scrive AI-Powered ERM
- * 
- * @package   Scrive
- * @author    American Caregivers Incorporated
- * @copyright Copyright (c) 2025 American Caregivers Incorporated
- * @license   MIT License
- */
-
-// Include API integration
-require_once 'api.php';
-
-// Simple authentication check
-if (!isset($_SESSION['authUser']) || empty($_SESSION['authUser'])) {
-    header('Location: ../interface/login/login.php?site=default');
-    exit;
-}
-
-$api = new OpenEMRAPI();
 $error = null;
 $success = null;
-$currentUser = null;
+$currentUser = getCurrentUser();
 $billingStats = [];
 $recentEntries = [];
 $monthlyTotals = [];
-$employeeRates = [];
 
 // Get filter parameters
-$startDate = $_GET['start_date'] ?? date('Y-m-01'); // First day of current month
-$endDate = $_GET['end_date'] ?? date('Y-m-t'); // Last day of current month
-$employeeFilter = $_GET['employee_id'] ?? '';
+$startDate = $_GET['start_date'] ?? date('Y-m-01');
+$endDate = $_GET['end_date'] ?? date('Y-m-t');
 $statusFilter = $_GET['status'] ?? '';
 
 try {
-    $currentUser = $api->getCurrentUser();
-    $employee = $api->getCurrentEmployee();
+    $pdo = getDatabase();
     
-    // Check if billing tables exist
-    $dbSetup = $api->checkDatabaseSetup();
-    if (!$dbSetup['tables_exist']) {
-        throw new Exception("Billing system not yet set up. Please run the comprehensive database setup first.");
-    }
+    // Get billing statistics from claims
+    $stmt = $pdo->prepare("
+        SELECT 
+            COUNT(*) as total_claims,
+            SUM(total_amount) as total_revenue,
+            COUNT(CASE WHEN status = 'paid' THEN 1 END) as paid_claims,
+            SUM(CASE WHEN status = 'paid' THEN payment_amount ELSE 0 END) as collected_revenue,
+            COUNT(CASE WHEN status = 'draft' THEN 1 END) as pending_claims
+        FROM autism_claims 
+        WHERE created_at BETWEEN ? AND ?
+    ");
+    $stmt->execute([$startDate, $endDate]);
+    $billingStats = $stmt->fetch(PDO::FETCH_ASSOC) ?: [];
     
-    // Get billing statistics
-    $billingStats = getBillingStatistics($startDate, $endDate, $employeeFilter);
-    
-    // Get recent billing entries
-    $recentEntries = getRecentBillingEntries($startDate, $endDate, $employeeFilter, $statusFilter);
+    // Get recent billing entries (claims)
+    $stmt = $pdo->prepare("
+        SELECT c.*, 
+               cl.first_name, cl.last_name, cl.ma_number
+        FROM autism_claims c
+        LEFT JOIN autism_clients cl ON c.client_id = cl.id  
+        WHERE c.created_at BETWEEN ? AND ?
+        " . ($statusFilter ? "AND c.status = ?" : "") . "
+        ORDER BY c.created_at DESC 
+        LIMIT 20
+    ");
+    $params = [$startDate, $endDate];
+    if ($statusFilter) $params[] = $statusFilter;
+    $stmt->execute($params);
+    $recentEntries = $stmt->fetchAll(PDO::FETCH_ASSOC);
     
     // Get monthly totals for chart
-    $monthlyTotals = getMonthlyBillingTotals();
-    
-    // Get employee rates for rate management
-    $employeeRates = getEmployeeRates();
+    $stmt = $pdo->query("
+        SELECT 
+            DATE_FORMAT(created_at, '%Y-%m') as month,
+            SUM(total_amount) as total_amount,
+            COUNT(*) as claim_count
+        FROM autism_claims 
+        WHERE created_at >= DATE_SUB(CURDATE(), INTERVAL 12 MONTH)
+        GROUP BY DATE_FORMAT(created_at, '%Y-%m')
+        ORDER BY month
+    ");
+    $monthlyTotals = $stmt->fetchAll(PDO::FETCH_ASSOC);
     
 } catch (Exception $e) {
     $error = $e->getMessage();
@@ -64,138 +69,22 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     try {
         $action = $_POST['action'] ?? '';
         
-        if ($action === 'approve_entry') {
-            $entryId = $_POST['entry_id'];
-            $sql = "UPDATE autism_billing_entries SET status = 'approved', approved_by = ?, approved_at = NOW() WHERE entry_id = ?";
-            sqlStatement($sql, [$_SESSION['authUserID'], $entryId]);
-            $success = "Billing entry approved successfully!";
-            
-        } elseif ($action === 'update_rate') {
-            $rateId = $_POST['rate_id'];
-            $newRate = $_POST['new_rate'];
-            $sql = "UPDATE autism_billing_rates SET hourly_rate = ?, updated_at = NOW() WHERE rate_id = ?";
-            sqlStatement($sql, [$newRate, $rateId]);
-            $success = "Rate updated successfully!";
+        if ($action === 'update_claim_status') {
+            $claimId = $_POST['claim_id'];
+            $newStatus = $_POST['new_status'];
+            $stmt = $pdo->prepare("UPDATE autism_claims SET status = ?, updated_at = NOW() WHERE id = ?");
+            $stmt->execute([$newStatus, $claimId]);
+            $success = "Claim status updated successfully!";
             
         } elseif ($action === 'generate_invoice') {
-            // Placeholder for invoice generation
-            $success = "Invoice generation will be implemented in the next phase!";
+            $success = "Invoice generation feature coming soon!";
         }
-        
-        // Refresh data
-        $billingStats = getBillingStatistics($startDate, $endDate, $employeeFilter);
-        $recentEntries = getRecentBillingEntries($startDate, $endDate, $employeeFilter, $statusFilter);
         
     } catch (Exception $e) {
         $error = $e->getMessage();
     }
 }
 
-function getBillingStatistics($startDate, $endDate, $employeeFilter = null) {
-    $whereConditions = ["be.billing_date BETWEEN ? AND ?"];
-    $params = [$startDate, $endDate];
-    
-    if ($employeeFilter) {
-        $whereConditions[] = "be.employee_id = ?";
-        $params[] = $employeeFilter;
-    }
-    
-    $whereClause = implode(' AND ', $whereConditions);
-    
-    $sql = "SELECT 
-                COUNT(*) as total_entries,
-                SUM(be.total_minutes) as total_minutes,
-                SUM(be.billable_minutes) as billable_minutes,
-                SUM(be.total_amount) as total_amount,
-                AVG(be.hourly_rate) as avg_rate,
-                COUNT(DISTINCT be.client_id) as unique_clients,
-                COUNT(DISTINCT be.employee_id) as unique_employees,
-                SUM(CASE WHEN be.status = 'pending' THEN be.total_amount ELSE 0 END) as pending_amount,
-                SUM(CASE WHEN be.status = 'approved' THEN be.total_amount ELSE 0 END) as approved_amount,
-                SUM(CASE WHEN be.status = 'billed' THEN be.total_amount ELSE 0 END) as billed_amount,
-                SUM(CASE WHEN be.status = 'paid' THEN be.total_amount ELSE 0 END) as paid_amount
-            FROM autism_billing_entries be
-            WHERE $whereClause";
-    
-    $result = sqlQuery($sql, $params);
-    return $result ?: [];
-}
-
-function getRecentBillingEntries($startDate, $endDate, $employeeFilter = null, $statusFilter = null) {
-    $whereConditions = ["be.billing_date BETWEEN ? AND ?"];
-    $params = [$startDate, $endDate];
-    
-    if ($employeeFilter) {
-        $whereConditions[] = "be.employee_id = ?";
-        $params[] = $employeeFilter;
-    }
-    
-    if ($statusFilter) {
-        $whereConditions[] = "be.status = ?";
-        $params[] = $statusFilter;
-    }
-    
-    $whereClause = implode(' AND ', $whereConditions);
-    
-    $sql = "SELECT 
-                be.*,
-                CONCAT(pd.fname, ' ', pd.lname) as client_name,
-                CONCAT(ae.first_name, ' ', ae.last_name) as employee_name,
-                st.name as service_type_name,
-                st.abbreviation as service_abbr
-            FROM autism_billing_entries be
-            LEFT JOIN patient_data pd ON be.client_id = pd.id
-            LEFT JOIN autism_employees ae ON be.employee_id = ae.employee_id
-            LEFT JOIN autism_service_types st ON be.service_type_id = st.service_type_id
-            WHERE $whereClause
-            ORDER BY be.billing_date DESC, be.created_at DESC
-            LIMIT 50";
-    
-    $result = sqlStatement($sql, $params);
-    $entries = [];
-    while ($row = sqlFetchArray($result)) {
-        $entries[] = $row;
-    }
-    return $entries;
-}
-
-function getMonthlyBillingTotals() {
-    $sql = "SELECT 
-                DATE_FORMAT(be.billing_date, '%Y-%m') as month,
-                SUM(be.total_amount) as total_amount,
-                COUNT(*) as entry_count
-            FROM autism_billing_entries be
-            WHERE be.billing_date >= DATE_SUB(CURDATE(), INTERVAL 12 MONTH)
-            GROUP BY DATE_FORMAT(be.billing_date, '%Y-%m')
-            ORDER BY month";
-    
-    $result = sqlStatement($sql);
-    $totals = [];
-    while ($row = sqlFetchArray($result)) {
-        $totals[] = $row;
-    }
-    return $totals;
-}
-
-function getEmployeeRates() {
-    $sql = "SELECT 
-                br.*,
-                st.name as service_name,
-                st.abbreviation as service_abbr,
-                CONCAT(ae.first_name, ' ', ae.last_name) as employee_name
-            FROM autism_billing_rates br
-            LEFT JOIN autism_service_types st ON br.service_type_id = st.service_type_id
-            LEFT JOIN autism_employees ae ON br.employee_role = ae.role
-            WHERE br.is_active = 1 AND (br.end_date IS NULL OR br.end_date >= CURDATE())
-            ORDER BY st.name, br.employee_role, br.rate_type";
-    
-    $result = sqlStatement($sql);
-    $rates = [];
-    while ($row = sqlFetchArray($result)) {
-        $rates[] = $row;
-    }
-    return $rates;
-}
 
 ?>
 
@@ -250,16 +139,16 @@ function getEmployeeRates() {
     <!-- Navigation -->
     <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
         <div class="container">
-            <a class="navbar-brand" href="index.php">
+            <a class="navbar-brand" href="<?= UrlManager::url('dashboard') ?>">
                 <i class="fas fa-brain me-2"></i>
-                Scrive
+                ACI Billing
             </a>
             <div class="navbar-nav ms-auto">
                 <span class="navbar-text me-3">
                     <i class="fas fa-user me-1"></i>
-                    <?php echo htmlspecialchars($currentUser['fname'] . ' ' . $currentUser['lname'] ?? 'User'); ?>
+                    <?= htmlspecialchars($currentUser['full_name']) ?>
                 </span>
-                <a class="btn btn-outline-light btn-sm" href="index.php">
+                <a class="btn btn-outline-light btn-sm" href="<?= UrlManager::url('dashboard') ?>">
                     <i class="fas fa-home me-1"></i>
                     Dashboard
                 </a>
@@ -346,14 +235,13 @@ function getEmployeeRates() {
         </div>
 
         <!-- Statistics Cards -->
-        <?php if (!empty($billingStats)): ?>
         <div class="row mb-4">
             <div class="col-lg-3 col-md-6 mb-3">
                 <div class="card stat-card bg-primary text-white">
                     <div class="card-body">
                         <div class="d-flex justify-content-between">
                             <div>
-                                <div class="stat-value">$<?php echo number_format($billingStats['total_amount'] ?? 0, 2); ?></div>
+                                <div class="stat-value">$<?= number_format($billingStats['total_revenue'] ?? 0, 2) ?></div>
                                 <div>Total Revenue</div>
                             </div>
                             <div class="stat-icon">
@@ -368,11 +256,11 @@ function getEmployeeRates() {
                     <div class="card-body">
                         <div class="d-flex justify-content-between">
                             <div>
-                                <div class="stat-value"><?php echo number_format(($billingStats['billable_minutes'] ?? 0) / 60, 1); ?>h</div>
-                                <div>Billable Hours</div>
+                                <div class="stat-value"><?= $billingStats['total_claims'] ?? 0 ?></div>
+                                <div>Total Claims</div>
                             </div>
                             <div class="stat-icon">
-                                <i class="fas fa-clock"></i>
+                                <i class="fas fa-file-medical"></i>
                             </div>
                         </div>
                     </div>
@@ -383,11 +271,11 @@ function getEmployeeRates() {
                     <div class="card-body">
                         <div class="d-flex justify-content-between">
                             <div>
-                                <div class="stat-value"><?php echo $billingStats['unique_clients'] ?? 0; ?></div>
-                                <div>Active Clients</div>
+                                <div class="stat-value"><?= $billingStats['paid_claims'] ?? 0 ?></div>
+                                <div>Paid Claims</div>
                             </div>
                             <div class="stat-icon">
-                                <i class="fas fa-users"></i>
+                                <i class="fas fa-check-circle"></i>
                             </div>
                         </div>
                     </div>
@@ -398,8 +286,8 @@ function getEmployeeRates() {
                     <div class="card-body">
                         <div class="d-flex justify-content-between">
                             <div>
-                                <div class="stat-value">$<?php echo number_format($billingStats['pending_amount'] ?? 0, 2); ?></div>
-                                <div>Pending</div>
+                                <div class="stat-value"><?= $billingStats['pending_claims'] ?? 0 ?></div>
+                                <div>Pending Claims</div>
                             </div>
                             <div class="stat-icon">
                                 <i class="fas fa-hourglass-half"></i>
@@ -409,7 +297,6 @@ function getEmployeeRates() {
                 </div>
             </div>
         </div>
-        <?php endif; ?>
 
         <div class="row">
             <!-- Recent Billing Entries -->
@@ -425,10 +312,10 @@ function getEmployeeRates() {
                         <?php if (empty($recentEntries)): ?>
                             <div class="text-center py-5 text-muted">
                                 <i class="fas fa-file-invoice" style="font-size: 3rem;"></i>
-                                <p class="mt-3">No billing entries found for the selected period</p>
-                                <a href="clients.php" class="btn btn-primary">
+                                <p class="mt-3">No billing claims found for the selected period</p>
+                                <a href="<?= UrlManager::url('billing_claims') ?>" class="btn btn-primary">
                                     <i class="fas fa-plus me-2"></i>
-                                    Create Session to Generate Billing
+                                    Create New Claim
                                 </a>
                             </div>
                         <?php else: ?>
@@ -436,11 +323,10 @@ function getEmployeeRates() {
                                 <table class="table table-hover mb-0">
                                     <thead class="table-light">
                                         <tr>
-                                            <th>Date</th>
+                                            <th>Claim #</th>
                                             <th>Client</th>
-                                            <th>Employee</th>
-                                            <th>Service</th>
-                                            <th>Hours</th>
+                                            <th>MA Number</th>
+                                            <th>Service Period</th>
                                             <th>Amount</th>
                                             <th>Status</th>
                                             <th>Actions</th>
@@ -449,40 +335,37 @@ function getEmployeeRates() {
                                     <tbody>
                                         <?php foreach ($recentEntries as $entry): ?>
                                             <tr>
-                                                <td><?php echo date('M j, Y', strtotime($entry['billing_date'])); ?></td>
-                                                <td><?php echo htmlspecialchars($entry['client_name']); ?></td>
-                                                <td><?php echo htmlspecialchars($entry['employee_name']); ?></td>
+                                                <td><?= htmlspecialchars($entry['claim_number'] ?? 'N/A') ?></td>
+                                                <td><?= htmlspecialchars(($entry['first_name'] ?? '') . ' ' . ($entry['last_name'] ?? '')) ?></td>
+                                                <td><?= htmlspecialchars($entry['ma_number'] ?? '') ?></td>
                                                 <td>
-                                                    <span class="badge bg-secondary">
-                                                        <?php echo htmlspecialchars($entry['service_abbr']); ?>
-                                                    </span>
+                                                    <?= date('m/d/Y', strtotime($entry['service_date_from'])) ?> - 
+                                                    <?= date('m/d/Y', strtotime($entry['service_date_to'])) ?>
                                                 </td>
-                                                <td><?php echo number_format($entry['billable_minutes'] / 60, 2); ?>h</td>
-                                                <td>$<?php echo number_format($entry['total_amount'], 2); ?></td>
+                                                <td>$<?= number_format($entry['total_amount'] ?? 0, 2) ?></td>
                                                 <td>
                                                     <span class="badge status-badge bg-<?php 
                                                         echo match($entry['status']) {
                                                             'draft' => 'secondary',
-                                                            'pending' => 'warning',
-                                                            'approved' => 'info',
-                                                            'billed' => 'primary',
+                                                            'generated' => 'warning',
+                                                            'submitted' => 'info',
                                                             'paid' => 'success',
-                                                            'disputed' => 'danger',
+                                                            'denied' => 'danger',
                                                             default => 'secondary'
                                                         }; ?>">
-                                                        <?php echo ucfirst($entry['status']); ?>
+                                                        <?= ucfirst($entry['status']) ?>
                                                     </span>
                                                 </td>
                                                 <td>
                                                     <div class="btn-group btn-group-sm">
-                                                        <?php if ($entry['status'] === 'pending'): ?>
-                                                            <button class="btn btn-outline-success" onclick="approveEntry(<?php echo $entry['entry_id']; ?>)">
-                                                                <i class="fas fa-check"></i>
-                                                            </button>
-                                                        <?php endif; ?>
-                                                        <button class="btn btn-outline-primary" onclick="viewEntry(<?php echo $entry['entry_id']; ?>)">
+                                                        <a href="<?= UrlManager::url('billing_claims') ?>?view=<?= $entry['id'] ?>" class="btn btn-outline-primary">
                                                             <i class="fas fa-eye"></i>
-                                                        </button>
+                                                        </a>
+                                                        <?php if ($entry['status'] === 'draft'): ?>
+                                                            <a href="<?= UrlManager::url('billing_edi') ?>?claim_id=<?= $entry['id'] ?>" class="btn btn-outline-success">
+                                                                <i class="fas fa-file-export"></i>
+                                                            </a>
+                                                        <?php endif; ?>
                                                     </div>
                                                 </td>
                                             </tr>
@@ -507,10 +390,10 @@ function getEmployeeRates() {
                     </div>
                     <div class="card-body">
                         <div class="d-grid gap-2">
-                            <button class="btn btn-primary" onclick="generateReport()">
+                            <a href="<?= UrlManager::url('reports', ['tab' => 'billing']) ?>" class="btn btn-primary">
                                 <i class="fas fa-chart-bar me-2"></i>
                                 Generate Report
-                            </button>
+                            </a>
                             <button class="btn btn-success" onclick="approveAll()">
                                 <i class="fas fa-check-double me-2"></i>
                                 Approve All Pending
@@ -519,10 +402,10 @@ function getEmployeeRates() {
                                 <i class="fas fa-file-csv me-2"></i>
                                 Export to CSV
                             </button>
-                            <button class="btn btn-warning" onclick="manageBillingRates()">
+                            <a href="<?= UrlManager::url('admin_organization', ['tab' => 'billing']) ?>" class="btn btn-warning">
                                 <i class="fas fa-dollar-sign me-2"></i>
                                 Manage Rates
-                            </button>
+                            </a>
                         </div>
                     </div>
                 </div>

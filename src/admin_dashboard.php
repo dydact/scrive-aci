@@ -2,11 +2,14 @@
 session_start();
 require_once 'config.php';
 require_once 'openemr_integration.php';
+require_once 'UrlManager.php';
+
+// Strip .php extension if present
+UrlManager::stripPhpExtension();
 
 // Check if user is logged in and is administrator
 if (!isset($_SESSION['user_id']) || $_SESSION['access_level'] < 5) {
-    header('Location: login.php');
-    exit;
+    UrlManager::redirect('login');
 }
 
 try {
@@ -238,12 +241,12 @@ try {
         </div>
         <div class="user-info">
             <span><?php echo htmlspecialchars($_SESSION['first_name'] . ' ' . $_SESSION['last_name']); ?></span>
-            <a href="logout.php" class="admin-link secondary" style="margin: 0; padding: 0.5rem 1rem;">Logout</a>
+            <a href="<?= UrlManager::url('logout') ?>" class="admin-link secondary" style="margin: 0; padding: 0.5rem 1rem;">Logout</a>
         </div>
     </div>
     
     <div class="container">
-        <a href="dashboard.php" class="back-link">← Back to Main Dashboard</a>
+        <a href="<?= UrlManager::url('dashboard') ?>" class="back-link">← Back to Main Dashboard</a>
         
         <h1 class="page-title">Administrator Dashboard</h1>
         <p class="page-subtitle">Manage your organization, employees, and system settings</p>
@@ -280,9 +283,9 @@ try {
                 <h3>👥 Employee Management</h3>
                 <p>Manage staff members, roles, assignments, and schedules.</p>
                 <div class="admin-actions">
-                    <a href="admin_employees.php" class="admin-link">View All Employees</a>
-                    <a href="admin_employees.php?action=add" class="admin-link secondary">Add New Employee</a>
-                    <a href="admin_schedules.php" class="admin-link secondary">Manage Schedules</a>
+                    <a href="<?= UrlManager::url('admin_employees') ?>" class="admin-link">View All Employees</a>
+                    <a href="<?= UrlManager::url('admin_employees', ['action' => 'add']) ?>" class="admin-link secondary">Add New Employee</a>
+                    <a href="<?= UrlManager::url('schedule') ?>" class="admin-link secondary">Manage Schedules</a>
                 </div>
             </div>
             
@@ -290,9 +293,9 @@ try {
                 <h3>🔐 User Management</h3>
                 <p>Create and manage user accounts, permissions, and access levels.</p>
                 <div class="admin-actions">
-                    <a href="admin_users.php" class="admin-link">Manage Users</a>
-                    <a href="admin_users.php?action=add" class="admin-link secondary">Create User Account</a>
-                    <a href="admin_roles.php" class="admin-link secondary">Manage Roles</a>
+                    <a href="<?= UrlManager::url('admin_users') ?>" class="admin-link">Manage Users</a>
+                    <a href="<?= UrlManager::url('admin_users', ['action' => 'add']) ?>" class="admin-link secondary">Create User Account</a>
+                    <a href="<?= UrlManager::url('admin_users', ['tab' => 'roles']) ?>" class="admin-link secondary">Manage Roles</a>
                 </div>
             </div>
             
@@ -300,9 +303,9 @@ try {
                 <h3>🏢 Organization Settings</h3>
                 <p>Configure organization details, billing information, and system preferences.</p>
                 <div class="admin-actions">
-                    <a href="admin_organization.php" class="admin-link">Organization Profile</a>
-                    <a href="admin_billing_settings.php" class="admin-link secondary">Billing Settings</a>
-                    <a href="admin_system_settings.php" class="admin-link secondary">System Settings</a>
+                    <a href="<?= UrlManager::url('admin_organization') ?>" class="admin-link">Organization Profile</a>
+                    <a href="<?= UrlManager::url('admin_organization', ['tab' => 'billing']) ?>" class="admin-link secondary">Billing Settings</a>
+                    <a href="<?= UrlManager::url('admin_organization', ['tab' => 'system']) ?>" class="admin-link secondary">System Settings</a>
                 </div>
             </div>
             
@@ -310,9 +313,9 @@ try {
                 <h3>📊 Reports & Analytics</h3>
                 <p>Generate comprehensive reports and analyze organizational performance.</p>
                 <div class="admin-actions">
-                    <a href="admin_reports.php" class="admin-link">View Reports</a>
-                    <a href="admin_audit_log.php" class="admin-link secondary">Audit Log</a>
-                    <a href="admin_analytics.php" class="admin-link secondary">Analytics Dashboard</a>
+                    <a href="<?= UrlManager::url('reports') ?>" class="admin-link">View Reports</a>
+                    <a href="<?= UrlManager::url('reports', ['tab' => 'audit']) ?>" class="admin-link secondary">Audit Log</a>
+                    <a href="<?= UrlManager::url('reports', ['tab' => 'analytics']) ?>" class="admin-link secondary">Analytics Dashboard</a>
                 </div>
             </div>
             
@@ -330,9 +333,9 @@ try {
                 <h3>💰 Financial Management</h3>
                 <p>Oversee billing, claims, payments, and financial reporting.</p>
                 <div class="admin-actions">
-                    <a href="/autism_waiver_app/billing_integration.php" class="admin-link">Billing Dashboard</a>
-                    <a href="admin_claims.php" class="admin-link secondary">Claims Management</a>
-                    <a href="admin_payments.php" class="admin-link secondary">Payment History</a>
+                    <a href="<?= UrlManager::url('billing_dashboard') ?>" class="admin-link">Billing Dashboard</a>
+                    <a href="<?= UrlManager::url('billing_claims') ?>" class="admin-link secondary">Claims Management</a>
+                    <a href="<?= UrlManager::url('billing', ['tab' => 'payments']) ?>" class="admin-link secondary">Payment History</a>
                 </div>
             </div>
         </div>

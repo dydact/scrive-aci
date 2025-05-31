@@ -1,13 +1,6 @@
 <?php
-session_start();
-require_once 'config.php';
-require_once 'openemr_integration.php';
-
-// Check if user is logged in and is administrator
-if (!isset($_SESSION['user_id']) || $_SESSION['access_level'] < 5) {
-    header('Location: login.php');
-    exit;
-}
+require_once 'init.php';
+requireAuth(5); // Admin only
 
 $pdo = getDatabase();
 $action = $_GET['action'] ?? 'list';
@@ -375,7 +368,7 @@ if ($action === 'list') {
     </div>
     
     <div class="container">
-        <a href="admin_dashboard.php" class="back-link">← Back to Admin Dashboard</a>
+        <a href="<?= UrlManager::url('admin') ?>" class="back-link">← Back to Admin Dashboard</a>
         
         <?php if ($message): ?>
         <div class="alert alert-success"><?php echo htmlspecialchars($message); ?></div>
@@ -549,7 +542,7 @@ if ($action === 'list') {
                     <button type="submit" class="btn btn-primary">
                         <?php echo $action === 'add' ? 'Add Employee' : 'Update Employee'; ?>
                     </button>
-                    <a href="admin_employees.php" class="btn btn-secondary">Cancel</a>
+                    <a href="<?= UrlManager::url('admin_employees') ?>" class="btn btn-secondary">Cancel</a>
                 </div>
             </form>
         </div>

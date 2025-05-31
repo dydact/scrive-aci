@@ -5,9 +5,10 @@ LABEL description="Scrive ACI - American Caregivers Healthcare Management System
 LABEL version="1.0.0"
 
 # Copy startup scripts first
-COPY docker/startup.sh /usr/local/bin/
-COPY docker/run-database-customization.sh /usr/local/bin/
-RUN chmod +x /usr/local/bin/startup.sh /usr/local/bin/run-database-customization.sh
+COPY docker/startup.sh /docker/startup.sh
+COPY docker/run-database-customization.sh /docker/run-database-customization.sh
+COPY docker/init-database.sh /docker/init-database.sh
+RUN chmod +x /docker/*.sh
 
 # Copy site configuration
 COPY sites/americancaregivers /var/www/localhost/htdocs/openemr/sites/americancaregivers
@@ -25,12 +26,10 @@ COPY sql/iris-database-customization.sql /docker-entrypoint-initdb.d/
 
 # Copy public interface files to web root
 COPY index.php /var/www/localhost/htdocs/
-COPY about.php /var/www/localhost/htdocs/
-COPY services.php /var/www/localhost/htdocs/
-COPY contact.php /var/www/localhost/htdocs/
-COPY application_form.php /var/www/localhost/htdocs/
-COPY authorize.php /var/www/localhost/htdocs/
 COPY .htaccess /var/www/localhost/htdocs/
+
+# Copy pages directory structure
+COPY pages /var/www/localhost/htdocs/pages
 
 # Copy backend src directory (secured)
 COPY src /var/www/localhost/htdocs/src
@@ -41,10 +40,12 @@ COPY autism_waiver_app /var/www/localhost/htdocs/autism_waiver_app
 # Copy public assets
 COPY public /var/www/localhost/htdocs/public
 
-# Copy setup and automation scripts
-COPY setup_production.php /var/www/localhost/htdocs/
+# Copy scripts
 COPY scripts /var/www/localhost/htdocs/scripts
 RUN chmod +x /var/www/localhost/htdocs/scripts/*.sh
+
+# Copy config directory
+COPY config /var/www/localhost/htdocs/config
 
 # Generate self-signed SSL certificates
 RUN mkdir -p /etc/ssl/certs && \
@@ -77,4 +78,4 @@ RUN chown -R apache:apache /var/www/localhost/htdocs/ && \
 EXPOSE 80 443
 
 # Use our custom startup script
-CMD ["/usr/local/bin/startup.sh"]
+CMD ["/docker/startup.sh"]

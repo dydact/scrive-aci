@@ -1,3 +1,7 @@
+<?php
+// Include domain configuration
+require_once __DIR__ . '/config/domain-config.php';
+?>
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -5,7 +9,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Home Care in Maryland - American Caregivers, Inc.</title>
     <meta name="description" content="American Caregivers, Inc. is a trusted provider of autism waiver and developmental disability services in Maryland. Quality care provision for children and adults with disabilities.">
-    <link rel="canonical" href="https://aci.dydact.io/" />
+    <link rel="canonical" href="<?php echo BASE_URL; ?>/" />
     
     <!-- Fonts -->
     <link rel="preload" as="style" href="https://fonts.googleapis.com/css?family=Merriweather:400,700,900,400italic,700italic,900italic|Montserrat:400,700|Inter:400,500,600,700&display=swap" />
@@ -544,8 +548,8 @@
                             <li><a href="/about">About Us</a></li>
                             <li><a href="/services">Services</a></li>
                             <li><a href="/contact">Contact Us</a></li>
-                            <li><a href="/application_form">Apply Now</a></li>
-                            <li><a href="src/login.php" style="background: var(--aci-red); border-radius: 5px;">Staff Login</a></li>
+                            <li><a href="/apply">Apply Now</a></li>
+                            <li><a href="/login" style="background: var(--aci-red); border-radius: 5px;">Staff Login</a></li>
                         </ul>
                     </div>
                     <button class="mobile-menu-toggle" onclick="toggleMenu()">☰</button>
@@ -657,9 +661,9 @@
                         <ul>
                             <li><a href="/about">About Us</a></li>
                             <li><a href="/services">Our Services</a></li>
-                            <li><a href="application_form.php">Apply for Employment</a></li>
+                            <li><a href="/apply">Apply for Employment</a></li>
                             <li><a href="/privacy-policy">Privacy Policy</a></li>
-                            <li><a href="src/login.php">Employee Portal</a></li>
+                            <li><a href="/login">Employee Portal</a></li>
                         </ul>
                     </div>
                     <div class="footer_section">
@@ -685,8 +689,8 @@
                     <div class="footer_section">
                         <h4>Staff Resources</h4>
                         <ul>
-                            <li><a href="src/login.php">Staff Login Portal</a></li>
-                            <li><a href="autism_waiver_app/mobile_employee_portal.php">Mobile Portal</a></li>
+                            <li><a href="/login">Staff Login Portal</a></li>
+                            <li><a href="/mobile">Mobile Portal</a></li>
                             <li><a href="/training">Training Resources</a></li>
                             <li><a href="/policies">Company Policies</a></li>
                             <li><a href="/support">IT Support</a></li>

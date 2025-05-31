@@ -1,0 +1,83 @@
+# Clean URL Configuration for aci.dydact.io
+RewriteEngine On
+
+# Remove .php extension and add trailing slash handling
+RewriteCond %{REQUEST_FILENAME} !-d
+RewriteCond %{REQUEST_FILENAME} !-f
+
+# Main page routes
+RewriteRule ^about/?$ about.php [L]
+RewriteRule ^services/?$ services.php [L]
+RewriteRule ^contact/?$ contact.php [L]
+RewriteRule ^apply/?$ application_form.php [L]
+
+# Staff/Admin routes
+RewriteRule ^login/?$ src/login.php [L]
+RewriteRule ^logout/?$ autism_waiver_app/logout.php [L]
+RewriteRule ^admin/?$ src/admin_dashboard.php [L]
+RewriteRule ^mobile/?$ autism_waiver_app/mobile_employee_portal.php [L]
+
+# Client Management
+RewriteRule ^clients/?$ autism_waiver_app/clients.php [L]
+RewriteRule ^client/([0-9]+)/?$ autism_waiver_app/client_detail.php?id=$1 [L]
+RewriteRule ^add-client/?$ autism_waiver_app/add_client.php [L]
+RewriteRule ^secure-clients/?$ autism_waiver_app/secure_clients.php [L]
+
+# Billing & Financial
+RewriteRule ^billing/?$ autism_waiver_app/billing_integration.php [L]
+RewriteRule ^billing-dashboard/?$ autism_waiver_app/billing_dashboard.php [L]
+RewriteRule ^payroll/?$ autism_waiver_app/payroll_report.php [L]
+
+# Scheduling
+RewriteRule ^schedule/?$ autism_waiver_app/schedule_manager.php [L]
+RewriteRule ^calendar/?$ autism_waiver_app/calendar.php [L]
+
+# Forms & Documentation
+RewriteRule ^forms/?$ autism_waiver_app/application_form.php [L]
+RewriteRule ^session-notes/?$ autism_waiver_app/new_session.php [L]
+RewriteRule ^treatment-plans/?$ autism_waiver_app/treatment_plan_manager.php [L]
+
+# Staff Management
+RewriteRule ^staff/?$ src/admin_employees.php [L]
+RewriteRule ^role-switcher/?$ autism_waiver_app/admin_role_switcher.php [L]
+RewriteRule ^case-manager/?$ autism_waiver_app/case_manager_portal.php [L]
+RewriteRule ^employee-portal/?$ autism_waiver_app/employee_portal.php [L]
+
+# Reports
+RewriteRule ^reports/?$ autism_waiver_app/reports.php [L]
+
+# API routes
+RewriteRule ^api/(.*)$ autism_waiver_app/api.php/$1 [L]
+
+# Other routes
+RewriteRule ^dashboard/?$ src/dashboard.php [L]
+RewriteRule ^features/?$ system_features.php [L]
+RewriteRule ^help/?$ help_center.php [L]
+RewriteRule ^privacy-policy/?$ privacy.php [L]
+RewriteRule ^training/?$ training.php [L]
+RewriteRule ^policies/?$ policies.php [L]
+RewriteRule ^support/?$ support.php [L]
+
+# Prevent access to sensitive files
+<Files "*.sql">
+    Order Allow,Deny
+    Deny from all
+</Files>
+
+<Files "*.log">
+    Order Allow,Deny
+    Deny from all
+</Files>
+
+<Files ".env">
+    Order Allow,Deny
+    Deny from all
+</Files>
+
+# Security headers
+<IfModule mod_headers.c>
+    Header always set X-Content-Type-Options "nosniff"
+    Header always set X-Frame-Options "DENY"
+    Header always set X-XSS-Protection "1; mode=block"
+    Header always set Referrer-Policy "strict-origin-when-cross-origin"
+</IfModule>

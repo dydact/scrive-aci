@@ -1,22 +1,79 @@
 <?php
+session_start();
+require_once '../src/config.php';
+require_once '../src/openemr_integration.php';
+require_once '../src/UrlManager.php';
 
-/**
- * Reports & Export - Scrive AI-Powered Autism Waiver ERM
- * 
- * @package   Scrive
- * @author    American Caregivers Incorporated
- * @copyright Copyright (c) 2025 American Caregivers Incorporated
- * @license   MIT License
- */
+// Strip .php extension if present
+UrlManager::stripPhpExtension();
 
-// Include Scrive authentication
-require_once 'auth.php';
-
-// Initialize authentication
-initScriveAuth();
+// Check authentication and permissions
+if (!isset($_SESSION['user_id']) || $_SESSION['access_level'] < 3) {
+    UrlManager::redirect('login');
+}
 
 // Get current user
-$currentUser = getCurrentScriveUser();
+$currentUser = [
+    'full_name' => $_SESSION['full_name'] ?? 'User',
+    'user_id' => $_SESSION['user_id'] ?? 0
+];
+
+try {
+    $pdo = getDatabase();
+    
+    // Get report statistics
+    $stats = [];
+    
+    // Client statistics
+    $stmt = $pdo->query("
+        SELECT 
+            COUNT(*) as total_clients,
+            COUNT(CASE WHEN status = 'active' THEN 1 END) as active_clients,
+            COUNT(CASE WHEN enrollment_date >= DATE_SUB(CURDATE(), INTERVAL 30 DAY) THEN 1 END) as new_clients_30_days
+        FROM autism_clients
+    ");
+    $stats['clients'] = $stmt->fetch(PDO::FETCH_ASSOC);
+    
+    // Session statistics
+    $stmt = $pdo->query("
+        SELECT 
+            COUNT(*) as total_sessions,
+            COUNT(CASE WHEN session_date >= DATE_SUB(CURDATE(), INTERVAL 30 DAY) THEN 1 END) as sessions_30_days,
+            COUNT(CASE WHEN status = 'approved' THEN 1 END) as approved_sessions,
+            SUM(TIME_TO_SEC(TIMEDIFF(end_time, start_time))/3600) as total_hours
+        FROM autism_session_notes
+    ");
+    $stats['sessions'] = $stmt->fetch(PDO::FETCH_ASSOC);
+    
+    // Billing statistics
+    $stmt = $pdo->query("
+        SELECT 
+            COUNT(*) as total_claims,
+            SUM(total_amount) as total_revenue,
+            COUNT(CASE WHEN status = 'paid' THEN 1 END) as paid_claims,
+            SUM(CASE WHEN status = 'paid' THEN payment_amount ELSE 0 END) as collected_revenue
+        FROM autism_claims
+    ");
+    $stats['billing'] = $stmt->fetch(PDO::FETCH_ASSOC);
+    
+    // Staff statistics
+    $stmt = $pdo->query("
+        SELECT 
+            COUNT(*) as total_staff,
+            COUNT(CASE WHEN status = 'active' THEN 1 END) as active_staff
+        FROM autism_staff_members
+    ");
+    $stats['staff'] = $stmt->fetch(PDO::FETCH_ASSOC);
+    
+} catch (Exception $e) {
+    error_log("Reports error: " . $e->getMessage());
+    $stats = [
+        'clients' => ['total_clients' => 0, 'active_clients' => 0, 'new_clients_30_days' => 0],
+        'sessions' => ['total_sessions' => 0, 'sessions_30_days' => 0, 'approved_sessions' => 0, 'total_hours' => 0],
+        'billing' => ['total_claims' => 0, 'total_revenue' => 0, 'paid_claims' => 0, 'collected_revenue' => 0],
+        'staff' => ['total_staff' => 0, 'active_staff' => 0]
+    ];
+}
 
 $pageTitle = "Reports & Export - Scrive";
 
@@ -85,7 +142,7 @@ $pageTitle = "Reports & Export - Scrive";
                     <p class="mb-0 mt-2">Generate comprehensive reports for billing, compliance, and analysis</p>
                 </div>
                 <div class="col-auto">
-                    <a href="index.php" class="btn btn-light">
+                    <a href="<?= UrlManager::url('dashboard') ?>" class="btn btn-light">
                         <i class="fas fa-arrow-left me-2"></i>
                         Back to Dashboard
                     </a>

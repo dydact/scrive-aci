@@ -2,11 +2,14 @@
 session_start();
 require_once 'config.php';
 require_once 'openemr_integration.php';
+require_once 'UrlManager.php';
+
+// Strip .php extension if present
+UrlManager::stripPhpExtension();
 
 // Check if user is logged in
 if (!isset($_SESSION['user_id'])) {
-    header('Location: login.php');
-    exit;
+    UrlManager::redirect('login');
 }
 
 try {
@@ -117,41 +120,42 @@ $role_actions = [];
 switch ($_SESSION['access_level']) {
     case 5: // Administrator
         $role_actions = [
-            ['url' => '/autism_waiver_app/client_list.php', 'label' => '👥 Client Management', 'class' => 'action-btn'],
-            ['url' => '/autism_waiver_app/billing_integration.php', 'label' => '💰 Billing System', 'class' => 'action-btn'],
-            ['url' => 'admin_dashboard.php', 'label' => '🔧 Admin Panel', 'class' => 'action-btn admin-panel'],
-            ['url' => '/autism_waiver_app/admin_role_switcher.php', 'label' => '🔄 Switch Role', 'class' => 'action-btn secondary'],
-            ['url' => '/autism_waiver_app/mobile_employee_portal.php', 'label' => '📱 Mobile Portal', 'class' => 'action-btn secondary'],
-            ['url' => '/autism_waiver_app/schedule_integration.php', 'label' => '📅 Schedules', 'class' => 'action-btn'],
-            ['url' => '/autism_waiver_app/forms.php', 'label' => '📄 Forms', 'class' => 'action-btn']
+            ['url' => '/clients', 'label' => '👥 Client Management', 'class' => 'action-btn'],
+            ['url' => '/billing', 'label' => '💰 Billing System', 'class' => 'action-btn'],
+            ['url' => '/admin', 'label' => '🔧 Admin Panel', 'class' => 'action-btn admin-panel'],
+            ['url' => '/role-switcher', 'label' => '🔄 Switch Role', 'class' => 'action-btn secondary'],
+            ['url' => '/staff', 'label' => '📱 Staff Portal', 'class' => 'action-btn secondary'],
+            ['url' => '/schedule', 'label' => '📅 Schedules', 'class' => 'action-btn'],
+            ['url' => '/reports', 'label' => '📊 Reports', 'class' => 'action-btn']
         ];
         break;
     case 4: // Supervisor
         $role_actions = [
-            ['url' => '/autism_waiver_app/secure_clients.php', 'label' => '👥 My Team Clients', 'class' => 'action-btn'],
-            ['url' => '/autism_waiver_app/case_manager_portal.php', 'label' => '📋 Supervision', 'class' => 'action-btn'],
-            ['url' => '/autism_waiver_app/billing_integration.php', 'label' => '💰 Billing Reports', 'class' => 'action-btn secondary'],
-            ['url' => '/autism_waiver_app/mobile_employee_portal.php', 'label' => '📱 Mobile Portal', 'class' => 'action-btn secondary']
+            ['url' => '/clients', 'label' => '👥 Team Clients', 'class' => 'action-btn'],
+            ['url' => '/supervisor', 'label' => '📋 Supervision Portal', 'class' => 'action-btn'],
+            ['url' => '/billing', 'label' => '💰 Billing Reports', 'class' => 'action-btn'],
+            ['url' => '/staff', 'label' => '📱 Staff Portal', 'class' => 'action-btn secondary']
         ];
         break;
     case 3: // Case Manager
         $role_actions = [
-            ['url' => '/autism_waiver_app/secure_clients.php', 'label' => '👥 My Clients', 'class' => 'action-btn'],
-            ['url' => '/autism_waiver_app/case_manager_portal.php', 'label' => '📋 Treatment Plans', 'class' => 'action-btn'],
-            ['url' => '/autism_waiver_app/mobile_employee_portal.php', 'label' => '📱 Mobile Portal', 'class' => 'action-btn secondary']
+            ['url' => '/clients/secure', 'label' => '👥 My Clients', 'class' => 'action-btn'],
+            ['url' => '/case-manager', 'label' => '📋 Treatment Plans', 'class' => 'action-btn'],
+            ['url' => '/billing', 'label' => '💰 Billing', 'class' => 'action-btn'],
+            ['url' => '/staff', 'label' => '📱 Staff Portal', 'class' => 'action-btn secondary']
         ];
         break;
     case 2: // Direct Care Staff
         $role_actions = [
-            ['url' => '/autism_waiver_app/mobile_employee_portal.php', 'label' => '📱 Mobile Portal', 'class' => 'action-btn'],
-            ['url' => '/autism_waiver_app/employee_portal.php', 'label' => '📝 Session Notes', 'class' => 'action-btn'],
-            ['url' => '/autism_waiver_app/secure_clients.php', 'label' => '👥 My Clients', 'class' => 'action-btn secondary']
+            ['url' => '/staff', 'label' => '📱 Staff Portal', 'class' => 'action-btn'],
+            ['url' => '/staff/notes', 'label' => '📝 Session Notes', 'class' => 'action-btn'],
+            ['url' => '/staff/clients', 'label' => '👥 My Clients', 'class' => 'action-btn secondary']
         ];
         break;
     case 1: // Technician
         $role_actions = [
-            ['url' => '/autism_waiver_app/mobile_employee_portal.php', 'label' => '📱 Mobile Portal', 'class' => 'action-btn'],
-            ['url' => '/autism_waiver_app/employee_portal.php', 'label' => '📝 Session Notes', 'class' => 'action-btn secondary']
+            ['url' => '/staff', 'label' => '📱 Staff Portal', 'class' => 'action-btn'],
+            ['url' => '/staff/notes', 'label' => '📝 Session Notes', 'class' => 'action-btn secondary']
         ];
         break;
 }
@@ -382,17 +386,17 @@ switch ($_SESSION['access_level']) {
                 <?php echo htmlspecialchars($_SESSION['first_name'] . ' ' . $_SESSION['last_name']); ?>
             </div>
             <div class="role-badge">
-                <?php echo htmlspecialchars($_SESSION['role_name']); ?> (Level <?php echo $_SESSION['access_level']; ?>)
+                <?php echo htmlspecialchars($_SESSION['role_name'] ?? 'Staff'); ?> (Level <?php echo $_SESSION['access_level']; ?>)
             </div>
-            <a href="/help_center.php" class="logout-btn" style="background: #4a90e2; margin-right: 10px;" target="_blank">Help</a>
-            <a href="login.php?action=logout" class="logout-btn">Logout</a>
+            <a href="/help" class="logout-btn" style="background: #4a90e2; margin-right: 10px;" target="_blank">Help</a>
+            <a href="/logout" class="logout-btn">Logout</a>
         </div>
     </div>
     
     <div class="container">
         <div class="role-banner">
-            <h2><?php echo htmlspecialchars($_SESSION['role_name']); ?> Dashboard</h2>
-            <p>Welcome back, <?php echo htmlspecialchars($_SESSION['first_name']); ?>! Access your autism waiver management tools below.</p>
+            <h2><?php echo htmlspecialchars($_SESSION['role_name'] ?? 'Staff'); ?> Dashboard</h2>
+            <p>Welcome back, <?php echo htmlspecialchars($_SESSION['first_name'] ?? 'User'); ?>! Access your autism waiver management tools below.</p>
         </div>
         
         <div class="production-notice">

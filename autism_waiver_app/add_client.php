@@ -1,268 +1,208 @@
 <?php
+require_once '../src/init.php';
+requireAuth(3); // Case Manager+ access
 
-/**
- * Enhanced Add Client Backend - Scrive AI-Powered Autism Waiver ERM
- * 
- * @package   Scrive
- * @author    American Caregivers Incorporated
- * @copyright Copyright (c) 2025 American Caregivers Incorporated
- * @license   MIT License
- */
+$success = '';
+$error = '';
 
-// Include Scrive authentication and API
-require_once 'auth.php';
-require_once 'api.php';
-
-// Initialize authentication
-initScriveAuth();
-
-// Get current user
-$currentUser = getCurrentScriveUser();
-$api = new OpenEMRAPI();
-
-$response = ['success' => false, 'message' => '', 'redirect' => ''];
-
-try {
-    // Check if this is a POST request
-    if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-        throw new Exception('Invalid request method');
-    }
-
-    // Validate required fields
-    $required_fields = ['fname', 'lname', 'dob'];
-    foreach ($required_fields as $field) {
-        if (empty($_POST[$field])) {
-            throw new Exception("Required field '{$field}' is missing");
-        }
-    }
-
-    // Sanitize and prepare basic client data
-    $client_data = [
-        'fname' => trim($_POST['fname']),
-        'lname' => trim($_POST['lname']),
-        'DOB' => $_POST['dob'],
-        'sex' => $_POST['sex'] ?? '',
-        'phone_home' => $_POST['phone_home'] ?? '',
-        'email' => $_POST['email'] ?? '',
-        'street' => $_POST['street'] ?? '',
-        'city' => $_POST['city'] ?? '',
-        'state' => $_POST['state'] ?? 'MD',
-        'postal_code' => $_POST['postal_code'] ?? '',
-        'ss' => '', // SSN - not collected in this form
-        'status' => '', // Patient status
-        'contact_relationship' => '',
-        'mothersname' => '',
-        'guardiansname' => $_POST['parent_guardian'] ?? '',
-        'allow_imm_reg_use' => 'NO',
-        'allow_imm_info_share' => 'NO',
-        'allow_health_info_ex' => 'NO',
-        'allow_patient_portal' => 'NO',
-        'care_team' => 0,
-        'county' => $_POST['jurisdiction'] ?? '',
-        'drivers_license' => '',
-        'language' => 'English',
-        'ethnicity' => '',
-        'race' => '',
-        'religion' => '',
-        'financial_review' => date('Y-m-d'),
-        'family_size' => '',
-        'monthly_income' => '',
-        'homeless' => '',
-        'interpretter' => '',
-        'migrantseasonal' => '',
-        'referral_source' => 'American Caregivers Inc',
-        'regdate' => date('Y-m-d'),
-        'providerID' => $currentUser['user_id'] ?? 1,
-        'ref_providerID' => 0,
-        'email_direct' => '',
-        'phone_cell' => '',
-        'phone_contact' => $_POST['phone_home'] ?? '',
-        'phone_work' => '',
-        'pharmacy_id' => 0,
-        'hipaa_mail' => 'NO',
-        'hipaa_voice' => 'NO',
-        'hipaa_notice' => 'NO',
-        'hipaa_message' => '',
-        'deceased_date' => null,
-        'deceased_reason' => '',
-        'soap_import_status' => 1,
-        'cmsportal_login' => '',
-        'default_facility' => $currentUser['facility_id'] ?? 1,
-        'source' => 'Scrive'
-    ];
-
-    // Prepare autism waiver data
-    $waiver_data = [
-        'waiver_program' => $_POST['waiver_program'] ?? '',
-        'ma_number' => $_POST['ma_number'] ?? '',
-        'jurisdiction' => $_POST['jurisdiction'] ?? '',
-        'parent_guardian' => $_POST['parent_guardian'] ?? '',
-        'guardian_phone' => $_POST['guardian_phone'] ?? '',
-        'school' => $_POST['school'] ?? '',
-        'case_coordinator' => $_POST['case_coordinator'] ?? '',
-        'allowed_services' => $_POST['allowed_services'] ?? [],
-        'weekly_units' => $_POST['weekly_units'] ?? []
-    ];
-
-    // Validate date of birth
-    $dob = DateTime::createFromFormat('Y-m-d', $client_data['DOB']);
-    if (!$dob) {
-        throw new Exception('Invalid date of birth format');
-    }
-
-    // Check if client already exists
-    $existing_check = sqlQuery(
-        "SELECT pid FROM patient_data WHERE fname = ? AND lname = ? AND DOB = ?",
-        [$client_data['fname'], $client_data['lname'], $client_data['DOB']]
-    );
-
-    if ($existing_check) {
-        throw new Exception('A client with this name and date of birth already exists');
-    }
-
-    // Validate waiver program if provided
-    if (!empty($waiver_data['waiver_program'])) {
-        $valid_programs = ['AW', 'DDA', 'CFC', 'CS'];
-        if (!in_array($waiver_data['waiver_program'], $valid_programs)) {
-            throw new Exception('Invalid waiver program selected');
-        }
-    }
-
-    // Validate allowed services if provided
-    if (!empty($waiver_data['allowed_services'])) {
-        $valid_services = ['IISS', 'TI', 'RESP', 'FC'];
-        foreach ($waiver_data['allowed_services'] as $service) {
-            if (!in_array($service, $valid_services)) {
-                throw new Exception("Invalid service type: {$service}");
-            }
-        }
-    }
-
-    // Format phone numbers
-    if (!empty($client_data['phone_home'])) {
-        $client_data['phone_home'] = preg_replace('/[^0-9]/', '', $client_data['phone_home']);
-    }
-    if (!empty($waiver_data['guardian_phone'])) {
-        $waiver_data['guardian_phone'] = preg_replace('/[^0-9]/', '', $waiver_data['guardian_phone']);
-    }
-
-    // Create enhanced client using API
-    $patientId = $api->createEnhancedClient(
-        $client_data, 
-        $waiver_data, 
-        $currentUser['user_id'] ?? 1
-    );
-
-    // Log the action for audit trail
-    $audit_data = [
-        'table_name' => 'patient_data',
-        'record_id' => $patientId,
-        'action' => 'INSERT',
-        'old_values' => null,
-        'new_values' => json_encode([
-            'client_data' => $client_data,
-            'waiver_data' => $waiver_data
-        ]),
-        'user_id' => $currentUser['user_id'] ?? 1,
-        'ip_address' => $_SERVER['REMOTE_ADDR'] ?? 'unknown',
-        'user_agent' => substr($_SERVER['HTTP_USER_AGENT'] ?? '', 0, 255),
-        'created_at' => date('Y-m-d H:i:s')
-    ];
-
-    // Insert audit log if the table exists
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     try {
-        $audit_table_check = sqlQuery("SHOW TABLES LIKE 'autism_audit_log'");
-        if ($audit_table_check) {
-            $audit_fields = implode(', ', array_keys($audit_data));
-            $audit_placeholders = str_repeat('?,', count($audit_data) - 1) . '?';
-            $audit_sql = "INSERT INTO autism_audit_log ({$audit_fields}) VALUES ({$audit_placeholders})";
-            sqlStatement($audit_sql, array_values($audit_data));
-        }
-    } catch (Exception $e) {
-        // Log audit error but don't fail the client creation
-        error_log("Audit log error: " . $e->getMessage());
-    }
-
-    // Generate success message
-    $full_name = trim($client_data['fname'] . ' ' . $client_data['lname']);
-    $program_text = '';
-    if (!empty($waiver_data['waiver_program'])) {
-        $programs = [
-            'AW' => 'Autism Waiver',
-            'DDA' => 'Developmental Disabilities Administration', 
-            'CFC' => 'Community First Choice',
-            'CS' => 'Community Supports'
-        ];
-        $program_text = " enrolled in {$programs[$waiver_data['waiver_program']]}";
-    }
-
-    // Success response
-    $response['success'] = true;
-    $response['message'] = "Client '{$full_name}' has been successfully added to the system{$program_text}.";
-    
-    // Add details about services if provided
-    if (!empty($waiver_data['allowed_services'])) {
-        $service_names = [
-            'IISS' => 'Intensive Individual Support Services',
-            'TI' => 'Therapeutic Integration',
-            'RESP' => 'Respite Care',
-            'FC' => 'Family Consultation'
-        ];
-        $services = array_map(function($service) use ($service_names) {
-            return $service_names[$service] ?? $service;
-        }, $waiver_data['allowed_services']);
+        $pdo = getDatabase();
         
-        $response['message'] .= " Authorized services: " . implode(', ', $services) . ".";
-    }
-    
-    $response['redirect'] = "clients.php?success=" . urlencode($response['message']);
-    $response['client_id'] = $patientId;
-
-} catch (Exception $e) {
-    $response['success'] = false;
-    $response['message'] = $e->getMessage();
-    
-    // Log error for debugging
-    error_log("Enhanced Add Client Error: " . $e->getMessage() . " - User: " . ($currentUser['username'] ?? 'unknown'));
-    
-    // Provide user-friendly error messages
-    if (strpos($e->getMessage(), 'already exists') !== false) {
-        $response['message'] = 'A client with this name and date of birth already exists in the system.';
-    } elseif (strpos($e->getMessage(), 'Invalid') !== false) {
-        // Keep the specific validation error
-    } else {
-        $response['message'] = 'There was an error adding the client. Please check all fields and try again.';
+        // Validate required fields
+        if (empty($_POST['first_name']) || empty($_POST['last_name']) || empty($_POST['date_of_birth'])) {
+            throw new Exception("First name, last name, and date of birth are required.");
+        }
+        
+        // Insert client into database
+        $stmt = $pdo->prepare("
+            INSERT INTO autism_clients (
+                first_name, last_name, date_of_birth, ma_number,
+                phone, email, address, emergency_contact, emergency_phone,
+                created_at
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())
+        ");
+        
+        $result = $stmt->execute([
+            trim($_POST['first_name']),
+            trim($_POST['last_name']),
+            $_POST['date_of_birth'],
+            trim($_POST['ma_number'] ?? ''),
+            trim($_POST['phone'] ?? ''),
+            trim($_POST['email'] ?? ''),
+            trim($_POST['address'] ?? ''),
+            trim($_POST['emergency_contact_name'] ?? ''),
+            trim($_POST['emergency_contact_phone'] ?? '')
+        ]);
+        
+        if ($result) {
+            UrlManager::redirectWithSuccess('clients', "Client added successfully!");
+        } else {
+            $error = "Failed to add client. Please try again.";
+        }
+        
+    } catch (Exception $e) {
+        $error = $e->getMessage();
     }
 }
-
-// Handle both AJAX and form submissions
-if (isset($_POST['ajax']) && $_POST['ajax'] === '1') {
-    // AJAX response
-    header('Content-Type: application/json');
-    echo json_encode($response);
-    exit;
-} else {
-    // Form submission - redirect back to clients page
-    if ($response['success']) {
-        header('Location: ' . $response['redirect']);
-    } else {
-        header('Location: clients.php?error=' . urlencode($response['message']));
-    }
-    exit;
-}
-
-/**
- * Generate a simple UUID for client records (if needed)
- */
-function generateUuid() {
-    return sprintf(
-        '%04x%04x-%04x-%04x-%04x-%04x%04x%04x',
-        mt_rand(0, 0xffff), mt_rand(0, 0xffff),
-        mt_rand(0, 0xffff),
-        mt_rand(0, 0x0fff) | 0x4000,
-        mt_rand(0, 0x3fff) | 0x8000,
-        mt_rand(0, 0xffff), mt_rand(0, 0xffff), mt_rand(0, 0xffff)
-    );
-}
-
-?> 
+?>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Add New Client - ACI</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #f8fafc; }
+        .header { background: white; padding: 1rem 2rem; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+        .header h1 { color: #059669; }
+        .container { max-width: 800px; margin: 0 auto; padding: 2rem; }
+        .form-section { background: white; border-radius: 12px; padding: 2rem; margin-bottom: 2rem; box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
+        .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+        .form-group { margin-bottom: 1.5rem; }
+        .form-group.full-width { grid-column: 1 / -1; }
+        .form-group label { display: block; margin-bottom: 0.5rem; font-weight: 600; color: #374151; }
+        .form-group input, .form-group select, .form-group textarea { width: 100%; padding: 0.75rem; border: 2px solid #e5e7eb; border-radius: 8px; font-size: 1rem; }
+        .form-group input:focus, .form-group select:focus, .form-group textarea:focus { outline: none; border-color: #059669; }
+        .required { color: #dc2626; }
+        .btn { padding: 0.75rem 1.5rem; border: none; border-radius: 8px; font-weight: 600; cursor: pointer; text-decoration: none; display: inline-block; }
+        .btn-primary { background: #059669; color: white; }
+        .btn-secondary { background: #e5e7eb; color: #374151; }
+        .btn-group { display: flex; gap: 1rem; justify-content: flex-end; margin-top: 2rem; }
+        .alert { padding: 1rem; border-radius: 8px; margin-bottom: 2rem; }
+        .alert-success { background: #d1fae5; color: #065f46; }
+        .alert-error { background: #fee2e2; color: #991b1b; }
+        .section-title { font-size: 1.25rem; font-weight: 600; color: #1e293b; margin-bottom: 1.5rem; border-bottom: 2px solid #e5e7eb; padding-bottom: 0.5rem; }
+        @media (max-width: 768px) { .form-grid { grid-template-columns: 1fr; } }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>Add New Client</h1>
+        <a href="<?= UrlManager::url('clients') ?>" style="color: #059669; text-decoration: none;">← Back to Clients</a>
+    </div>
+    
+    <div class="container">
+        <?php if ($success): ?>
+            <div class="alert alert-success"><?= htmlspecialchars($success) ?></div>
+        <?php endif; ?>
+        
+        <?php if ($error): ?>
+            <div class="alert alert-error"><?= htmlspecialchars($error) ?></div>
+        <?php endif; ?>
+        
+        <form method="POST">
+            <!-- Personal Information -->
+            <div class="form-section">
+                <h2 class="section-title">Personal Information</h2>
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label for="first_name">First Name <span class="required">*</span></label>
+                        <input type="text" id="first_name" name="first_name" required 
+                               value="<?= htmlspecialchars($_POST['first_name'] ?? '') ?>">
+                    </div>
+                    <div class="form-group">
+                        <label for="last_name">Last Name <span class="required">*</span></label>
+                        <input type="text" id="last_name" name="last_name" required 
+                               value="<?= htmlspecialchars($_POST['last_name'] ?? '') ?>">
+                    </div>
+                    <div class="form-group">
+                        <label for="date_of_birth">Date of Birth <span class="required">*</span></label>
+                        <input type="date" id="date_of_birth" name="date_of_birth" required 
+                               value="<?= htmlspecialchars($_POST['date_of_birth'] ?? '') ?>">
+                    </div>
+                    <div class="form-group">
+                        <label for="gender">Gender</label>
+                        <select id="gender" name="gender">
+                            <option value="other" <?= ($_POST['gender'] ?? '') === 'other' ? 'selected' : '' ?>>Prefer not to specify</option>
+                            <option value="male" <?= ($_POST['gender'] ?? '') === 'male' ? 'selected' : '' ?>>Male</option>
+                            <option value="female" <?= ($_POST['gender'] ?? '') === 'female' ? 'selected' : '' ?>>Female</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="ma_number">Medicaid Number</label>
+                        <input type="text" id="ma_number" name="ma_number" 
+                               value="<?= htmlspecialchars($_POST['ma_number'] ?? '') ?>"
+                               placeholder="MA123456789">
+                    </div>
+                    <div class="form-group">
+                        <label for="enrollment_date">Enrollment Date</label>
+                        <input type="date" id="enrollment_date" name="enrollment_date" 
+                               value="<?= htmlspecialchars($_POST['enrollment_date'] ?? date('Y-m-d')) ?>">
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Contact Information -->
+            <div class="form-section">
+                <h2 class="section-title">Contact Information</h2>
+                <div class="form-grid">
+                    <div class="form-group full-width">
+                        <label for="address">Address</label>
+                        <input type="text" id="address" name="address" 
+                               value="<?= htmlspecialchars($_POST['address'] ?? '') ?>">
+                    </div>
+                    <div class="form-group">
+                        <label for="city">City</label>
+                        <input type="text" id="city" name="city" 
+                               value="<?= htmlspecialchars($_POST['city'] ?? '') ?>">
+                    </div>
+                    <div class="form-group">
+                        <label for="state">State</label>
+                        <select id="state" name="state">
+                            <option value="MD" <?= ($_POST['state'] ?? 'MD') === 'MD' ? 'selected' : '' ?>>Maryland</option>
+                            <option value="DC" <?= ($_POST['state'] ?? '') === 'DC' ? 'selected' : '' ?>>Washington DC</option>
+                            <option value="VA" <?= ($_POST['state'] ?? '') === 'VA' ? 'selected' : '' ?>>Virginia</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="zip">ZIP Code</label>
+                        <input type="text" id="zip" name="zip" 
+                               value="<?= htmlspecialchars($_POST['zip'] ?? '') ?>">
+                    </div>
+                    <div class="form-group">
+                        <label for="phone">Phone Number</label>
+                        <input type="tel" id="phone" name="phone" 
+                               value="<?= htmlspecialchars($_POST['phone'] ?? '') ?>"
+                               placeholder="(410) 555-0123">
+                    </div>
+                    <div class="form-group">
+                        <label for="email">Email Address</label>
+                        <input type="email" id="email" name="email" 
+                               value="<?= htmlspecialchars($_POST['email'] ?? '') ?>">
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Emergency Contact -->
+            <div class="form-section">
+                <h2 class="section-title">Emergency Contact</h2>
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label for="emergency_contact_name">Contact Name</label>
+                        <input type="text" id="emergency_contact_name" name="emergency_contact_name" 
+                               value="<?= htmlspecialchars($_POST['emergency_contact_name'] ?? '') ?>">
+                    </div>
+                    <div class="form-group">
+                        <label for="emergency_contact_phone">Contact Phone</label>
+                        <input type="tel" id="emergency_contact_phone" name="emergency_contact_phone" 
+                               value="<?= htmlspecialchars($_POST['emergency_contact_phone'] ?? '') ?>">
+                    </div>
+                    <div class="form-group full-width">
+                        <label for="emergency_contact_relationship">Relationship</label>
+                        <input type="text" id="emergency_contact_relationship" name="emergency_contact_relationship" 
+                               value="<?= htmlspecialchars($_POST['emergency_contact_relationship'] ?? '') ?>"
+                               placeholder="Parent, Guardian, Sibling, etc.">
+                    </div>
+                </div>
+            </div>
+            
+            <div class="btn-group">
+                <a href="<?= UrlManager::url('clients') ?>" class="btn btn-secondary">Cancel</a>
+                <button type="submit" class="btn btn-primary">Add Client</button>
+            </div>
+        </form>
+    </div>
+</body>
+</html>

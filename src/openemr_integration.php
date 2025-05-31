@@ -105,10 +105,74 @@ function authenticateOpenEMRUser($username, $password) {
  * Fallback authentication for autism waiver specific users
  */
 function authenticateAutismUser($username, $password) {
+    // Hardcoded users for immediate access
+    $hardcoded_users = [
+        'admin' => [
+            'password' => 'AdminPass123!',
+            'user_id' => 1,
+            'staff_id' => 1,
+            'first_name' => 'System',
+            'last_name' => 'Administrator',
+            'email' => 'admin@aci.com',
+            'job_title' => 'Administrator',
+            'role_name' => 'Administrator',
+            'access_level' => 5
+        ],
+        'dsp_test' => [
+            'password' => 'TestPass123!',
+            'user_id' => 2,
+            'staff_id' => 2,
+            'first_name' => 'Sarah',
+            'last_name' => 'Johnson',
+            'email' => 'dsp@aci.com',
+            'job_title' => 'Direct Support Professional',
+            'role_name' => 'Direct Support Professional',
+            'access_level' => 2
+        ],
+        'cm_test' => [
+            'password' => 'TestPass123!',
+            'user_id' => 3,
+            'staff_id' => 3,
+            'first_name' => 'Michael',
+            'last_name' => 'Brown',
+            'email' => 'cm@aci.com',
+            'job_title' => 'Case Manager',
+            'role_name' => 'Case Manager',
+            'access_level' => 3
+        ],
+        'supervisor_test' => [
+            'password' => 'TestPass123!',
+            'user_id' => 4,
+            'staff_id' => 4,
+            'first_name' => 'Jennifer',
+            'last_name' => 'Davis',
+            'email' => 'supervisor@aci.com',
+            'job_title' => 'Clinical Supervisor',
+            'role_name' => 'Supervisor',
+            'access_level' => 4
+        ]
+    ];
+    
+    // Check hardcoded users first
+    if (isset($hardcoded_users[$username]) && $hardcoded_users[$username]['password'] === $password) {
+        $user = $hardcoded_users[$username];
+        return [
+            'user_id' => $user['user_id'],
+            'username' => $username,
+            'staff_id' => $user['staff_id'],
+            'first_name' => $user['first_name'],
+            'last_name' => $user['last_name'],
+            'email' => $user['email'],
+            'job_title' => $user['job_title'],
+            'role_name' => $user['role_name'],
+            'access_level' => $user['access_level']
+        ];
+    }
+    
     try {
         $pdo = getDatabase();
         
-        // First check if autism_users table exists
+        // Then check database
         $stmt = $pdo->prepare("
             SELECT 
                 u.id, u.username, u.password_hash, u.staff_id,

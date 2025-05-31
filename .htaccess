@@ -1,20 +1,112 @@
-   RewriteEngine On
-   SetEnvIf Authorization "(.*)" HTTP_AUTHORIZATION=$1
+RewriteEngine On
+SetEnvIf Authorization "(.*)" HTTP_AUTHORIZATION=$1
 
-   # Don't remove .php extension for src/ directory (backend files)
-   RewriteCond %{THE_REQUEST} ^[A-Z]+\s([^\s]+)\.php[\s?] [NC]
-   RewriteCond %{REQUEST_URI} !^/src/
-   RewriteRule ^ /%1 [R=301,L]
+# Global .php extension stripper - redirect .php URLs to clean URLs
+RewriteCond %{THE_REQUEST} ^[A-Z]+\s([^\s]+)\.php(\?[^\s]*)?\s [NC]
+RewriteRule ^ %1%2 [R=301,L]
 
-   # Internally map /page to page.php if page.php exists (excluding src/)
-   RewriteCond %{REQUEST_FILENAME} !-d
-   RewriteCond %{REQUEST_FILENAME} !-f
-   RewriteCond %{REQUEST_FILENAME}.php -f
-   RewriteCond %{REQUEST_URI} !^/src/
-   RewriteRule ^(.*)$ $1.php [L]
+# Add .php extension for internal processing if file doesn't exist but .php file does
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteCond %{REQUEST_FILENAME} !-d
+RewriteCond %{REQUEST_FILENAME}.php -f
+RewriteRule ^(.*)$ $1.php [L]
 
-   # Route everything else through authorize.php for OpenEMR compatibility
-   RewriteCond %{REQUEST_FILENAME} !-f
-   RewriteCond %{REQUEST_FILENAME} !-d
-   RewriteCond %{REQUEST_FILENAME} !-l
-   RewriteRule (.*) authorize.php?_REWRITE_COMMAND=$1 [QSA,L]
+# Dynamic routes from routes.php
+
+# Public routes
+RewriteRule ^about/?$ pages/public/about.php [L]
+RewriteRule ^services/?$ pages/public/services.php [L]
+RewriteRule ^contact/?$ pages/public/contact.php [L]
+RewriteRule ^apply/?$ pages/public/application_form.php [L]
+
+# Authentication
+RewriteRule ^login/?$ src/login.php [L]
+RewriteRule ^logout/?$ pages/auth/logout.php [L]
+RewriteRule ^dashboard/?$ src/dashboard.php [L]
+
+# Admin Panel
+RewriteRule ^admin/?$ src/admin_dashboard.php [L]
+RewriteRule ^admin/users/?$ src/admin_users.php [L]
+RewriteRule ^admin/employees/?$ src/admin_employees.php [L]
+RewriteRule ^admin/organization/?$ src/admin_organization.php [L]
+
+# Client Management
+RewriteRule ^clients/?$ autism_waiver_app/clients.php [L]
+RewriteRule ^clients/add/?$ autism_waiver_app/add_client.php [L]
+RewriteRule ^clients/secure/?$ autism_waiver_app/secure_clients.php [L]
+RewriteRule ^client/(\d+)/?$ autism_waiver_app/client_detail.php?id=$1 [L]
+
+# Billing & Financial
+RewriteRule ^billing/?$ autism_waiver_app/billing_integration.php [L]
+RewriteRule ^billing/dashboard/?$ autism_waiver_app/billing_dashboard.php [L]
+RewriteRule ^billing/payroll/?$ autism_waiver_app/payroll_report.php [L]
+RewriteRule ^billing/claims/?$ autism_waiver_app/billing_claims.php [L]
+RewriteRule ^billing/edi/?$ autism_waiver_app/edi_processing.php [L]
+
+# Staff Portal (formerly Mobile Portal)
+RewriteRule ^staff/?$ autism_waiver_app/staff_portal_router.php [L]
+RewriteRule ^staff/dashboard/?$ autism_waiver_app/staff_dashboard.php [L]
+RewriteRule ^staff/clock/?$ autism_waiver_app/api_time_clock.php [L]
+RewriteRule ^staff/notes/?$ autism_waiver_app/new_session.php [L]
+RewriteRule ^staff/notes/iiss/?$ autism_waiver_app/iiss_session_note.php [L]
+RewriteRule ^staff/notes/edit/(\d+)/?$ autism_waiver_app/edit_session.php?id=$1 [L]
+RewriteRule ^staff/schedule/?$ autism_waiver_app/employee_schedule.php [L]
+RewriteRule ^staff/clients/?$ autism_waiver_app/employee_portal.php [L]
+RewriteRule ^staff/hours/?$ autism_waiver_app/my_hours.php [L]
+
+# Case Manager Portal
+RewriteRule ^case-manager/?$ autism_waiver_app/case_manager_portal.php [L]
+RewriteRule ^case-manager/plans/?$ autism_waiver_app/treatment_plan_manager.php [L]
+RewriteRule ^case-manager/approvals/?$ autism_waiver_app/note_approvals.php [L]
+
+# Supervisor Portal
+RewriteRule ^supervisor/?$ autism_waiver_app/supervisor_portal.php [L]
+RewriteRule ^supervisor/approvals/?$ autism_waiver_app/supervisor_approvals.php [L]
+RewriteRule ^supervisor/reports/?$ autism_waiver_app/supervisor_reports.php [L]
+
+# Scheduling
+RewriteRule ^schedule/?$ autism_waiver_app/schedule_manager.php [L]
+RewriteRule ^calendar/?$ autism_waiver_app/calendar.php [L]
+
+# Reports
+RewriteRule ^reports/?$ autism_waiver_app/reports.php [L]
+RewriteRule ^reports/payroll/?$ autism_waiver_app/payroll_report.php [L]
+RewriteRule ^reports/billing/?$ autism_waiver_app/billing_reports.php [L]
+RewriteRule ^reports/clinical/?$ autism_waiver_app/clinical_reports.php [L]
+
+# Forms & Documentation
+RewriteRule ^forms/?$ autism_waiver_app/application_form.php [L]
+RewriteRule ^forms/session/?$ autism_waiver_app/new_session.php [L]
+RewriteRule ^forms/treatment/?$ autism_waiver_app/treatment_plan_manager.php [L]
+
+# API Endpoints
+RewriteRule ^api/time-clock/?$ autism_waiver_app/api_time_clock.php [L]
+RewriteRule ^api/clients/?$ autism_waiver_app/api.php?endpoint=clients [L]
+RewriteRule ^api/sessions/?$ autism_waiver_app/api.php?endpoint=sessions [L]
+RewriteRule ^api/billing/?$ autism_waiver_app/api.php?endpoint=billing [L]
+
+# Help & Support
+RewriteRule ^help/?$ pages/public/help_center.php [L]
+RewriteRule ^help/guide/?$ pages/public/help_guide.php [L]
+RewriteRule ^help/training/?$ pages/public/training.php [L]
+
+# Role Switcher
+RewriteRule ^role-switcher/?$ autism_waiver_app/admin_role_switcher.php [L]
+
+# Setup routes
+RewriteRule ^setup_comprehensive/?$ autism_waiver_app/setup_comprehensive.php [L]
+
+# Legacy mobile redirect
+RewriteRule ^mobile/?$ staff/ [R=301,L]
+
+# Fallback - map /page to page.php if exists
+RewriteCond %{REQUEST_FILENAME} !-d
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteCond %{REQUEST_FILENAME}.php -f
+RewriteRule ^(.*)$ $1.php [L]
+
+# OpenEMR compatibility
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteCond %{REQUEST_FILENAME} !-d
+RewriteCond %{REQUEST_FILENAME} !-l
+RewriteRule (.*) pages/auth/authorize.php?_REWRITE_COMMAND=$1 [QSA,L]

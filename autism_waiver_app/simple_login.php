@@ -21,7 +21,8 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
             'first_name' => 'System',
             'last_name' => 'Administrator',
             'access_level' => 5,
-            'user_type' => 'admin'
+            'user_type' => 'admin',
+            'role_name' => 'Administrator'
         ],
         'dsp_test' => [
             'password' => 'TestPass123!',
@@ -29,7 +30,8 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
             'first_name' => 'Sarah',
             'last_name' => 'Johnson',
             'access_level' => 2,
-            'user_type' => 'staff'
+            'user_type' => 'staff',
+            'role_name' => 'Direct Support Professional'
         ],
         'cm_test' => [
             'password' => 'TestPass123!',
@@ -37,7 +39,8 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
             'first_name' => 'Michael',
             'last_name' => 'Brown',
             'access_level' => 3,
-            'user_type' => 'staff'
+            'user_type' => 'staff',
+            'role_name' => 'Case Manager'
         ],
         'supervisor_test' => [
             'password' => 'TestPass123!',
@@ -45,7 +48,8 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
             'first_name' => 'Jennifer',
             'last_name' => 'Davis',
             'access_level' => 4,
-            'user_type' => 'staff'
+            'user_type' => 'staff',
+            'role_name' => 'Supervisor'
         ]
     ];
     
@@ -60,6 +64,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         $_SESSION['last_name'] = $user['last_name'];
         $_SESSION['access_level'] = $user['access_level'];
         $_SESSION['user_type'] = $user['user_type'];
+        $_SESSION['role_name'] = $user['role_name'] ?? 'Staff';
         $_SESSION['staff_member_id'] = $user['user_id']; // For staff assignments
         
         // Redirect to dashboard

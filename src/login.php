@@ -2,6 +2,10 @@
 session_start();
 require_once 'config.php';
 require_once 'openemr_integration.php';
+require_once 'UrlManager.php';
+
+// Strip .php extension if present
+UrlManager::stripPhpExtension();
 
 $error = null;
 $success = null;
@@ -14,8 +18,7 @@ if (isset($_GET['action']) && $_GET['action'] === 'logout') {
 
 // Check if already logged in
 if (isset($_SESSION['user_id'])) {
-    header('Location: dashboard.php');
-    exit;
+    UrlManager::redirect('dashboard');
 }
 
 // Handle login form submission
@@ -57,8 +60,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $_SESSION['role_name'] = $user['title'] ?? 'User';
         }
         
-        header('Location: dashboard.php');
-        exit;
+        UrlManager::redirect('dashboard');
         
     } catch (Exception $e) {
         $error = $e->getMessage();
@@ -295,12 +297,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         </form>
         
         <div class="forgot-password">
-            <a href="password_reset.php">Forgot your password?</a>
+            <a href="/password-reset">Forgot your password?</a>
         </div>
         
         <div style="margin-top: 1rem; text-align: center;">
-            <a href="/help_center.php" class="back-link" style="margin-right: 1rem;">📚 Help Center</a>
-            <a href="/index.php" class="back-link">← Back to Website</a>
+            <a href="<?= UrlManager::url('help') ?>" class="back-link" style="margin-right: 1rem;">📚 Help Center</a>
+            <a href="/" class="back-link">← Back to Website</a>
         </div>
     </div>
     
