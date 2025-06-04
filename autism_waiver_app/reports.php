@@ -28,8 +28,8 @@ try {
     $stmt = $pdo->query("
         SELECT 
             COUNT(*) as total_clients,
-            COUNT(CASE WHEN status = 'active' THEN 1 END) as active_clients,
-            COUNT(CASE WHEN enrollment_date >= DATE_SUB(CURDATE(), INTERVAL 30 DAY) THEN 1 END) as new_clients_30_days
+            COUNT(*) as active_clients,
+            COUNT(CASE WHEN created_at >= DATE_SUB(CURDATE(), INTERVAL 30 DAY) THEN 1 END) as new_clients_30_days
         FROM autism_clients
     ");
     $stats['clients'] = $stmt->fetch(PDO::FETCH_ASSOC);
@@ -39,9 +39,9 @@ try {
         SELECT 
             COUNT(*) as total_sessions,
             COUNT(CASE WHEN session_date >= DATE_SUB(CURDATE(), INTERVAL 30 DAY) THEN 1 END) as sessions_30_days,
-            COUNT(CASE WHEN status = 'approved' THEN 1 END) as approved_sessions,
-            SUM(TIME_TO_SEC(TIMEDIFF(end_time, start_time))/3600) as total_hours
-        FROM autism_session_notes
+            COUNT(CASE WHEN status = 'completed' THEN 1 END) as approved_sessions,
+            SUM(duration_hours) as total_hours
+        FROM autism_sessions
     ");
     $stats['sessions'] = $stmt->fetch(PDO::FETCH_ASSOC);
     
@@ -60,7 +60,7 @@ try {
     $stmt = $pdo->query("
         SELECT 
             COUNT(*) as total_staff,
-            COUNT(CASE WHEN status = 'active' THEN 1 END) as active_staff
+            COUNT(*) as active_staff
         FROM autism_staff_members
     ");
     $stats['staff'] = $stmt->fetch(PDO::FETCH_ASSOC);
@@ -207,11 +207,6 @@ $pageTitle = "Reports & Export - Scrive";
                 </div>
             </div>
 
-            <div class="alert alert-info mt-4">
-                <i class="fas fa-info-circle me-2"></i>
-                <strong>Coming Soon:</strong> Advanced reporting features are currently in development. 
-                Initialize the database first using the <a href="setup_comprehensive.php" class="alert-link">Complete Setup</a> option.
-            </div>
         </div>
     </section>
 

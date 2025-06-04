@@ -22,12 +22,26 @@ try {
             $searchPattern = "%{$search_term}%";
             $stmt->execute([$searchPattern, $searchPattern, $searchPattern]);
         } else {
-            $stmt = $pdo->query("SELECT * FROM autism_clients ORDER BY last_name, first_name");
+            $stmt = $pdo->query("
+                SELECT c.*,
+                    (SELECT COUNT(*) FROM autism_sessions WHERE client_id = c.id) as total_sessions,
+                    (SELECT COUNT(DISTINCT staff_id) FROM autism_sessions WHERE client_id = c.id) as assigned_staff,
+                    (SELECT MAX(session_date) FROM autism_sessions WHERE client_id = c.id) as last_session_date
+                FROM autism_clients c
+                ORDER BY c.last_name, c.first_name
+            ");
         }
         $clients = $stmt->fetchAll(PDO::FETCH_ASSOC);
     } else {
         // DSP and Case Managers see all clients for now (simplified)
-        $stmt = $pdo->query("SELECT * FROM autism_clients ORDER BY last_name, first_name");
+        $stmt = $pdo->query("
+            SELECT c.*,
+                (SELECT COUNT(*) FROM autism_sessions WHERE client_id = c.id) as total_sessions,
+                (SELECT COUNT(DISTINCT staff_id) FROM autism_sessions WHERE client_id = c.id) as assigned_staff,
+                (SELECT MAX(session_date) FROM autism_sessions WHERE client_id = c.id) as last_session_date
+            FROM autism_clients c
+            ORDER BY c.last_name, c.first_name
+        ");
         $clients = $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
     
@@ -370,7 +384,7 @@ $error = $_GET['error'] ?? $error ?? '';
             <h1 class="page-title">Client Management</h1>
             <div class="actions">
                 <?php if ($_SESSION['access_level'] >= 3): ?>
-                    <a href="/clients/add" class="btn btn-primary">+ Add New Client</a>
+                    <a href="/autism_waiver_app/add_client.php" class="btn btn-primary">+ Add New Client</a>
                 <?php endif; ?>
                 <a href="/reports/clients" class="btn btn-secondary">Export Report</a>
             </div>
@@ -468,11 +482,11 @@ $error = $_GET['error'] ?? $error ?? '';
                                 </td>
                                 <td>
                                     <div class="action-links">
-                                        <a href="/client/<?= $client['id'] ?>">View</a>
+                                        <a href="/autism_waiver_app/client_detail.php?id=<?= $client['id'] ?>">View</a>
                                         <?php if ($_SESSION['access_level'] >= 3): ?>
-                                            <a href="/client/<?= $client['id'] ?>/edit">Edit</a>
+                                            <a href="/autism_waiver_app/client_detail.php?id=<?= $client['id'] ?>&action=edit">Edit</a>
                                         <?php endif; ?>
-                                        <a href="/staff/notes?client_id=<?= $client['id'] ?>">Add Note</a>
+                                        <a href="/autism_waiver_app/new_session.php?client_id=<?= $client['id'] ?>">Add Note</a>
                                     </div>
                                 </td>
                             </tr>

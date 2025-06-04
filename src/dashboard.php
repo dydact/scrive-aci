@@ -64,6 +64,22 @@ try {
         $stmt = $pdo->query("SELECT COUNT(*) as count FROM autism_treatment_plans WHERE status = 'active'");
         $stats['active_plans'] = $stmt->fetch(PDO::FETCH_ASSOC)['count'];
         
+        // Add pending approvals count for supervisors
+        if ($_SESSION['access_level'] >= 4) {
+            $stmt = $pdo->query("
+                SELECT COUNT(*) as count FROM autism_session_notes 
+                WHERE status IN ('completed', 'pending_approval') 
+                AND created_at < DATE_SUB(NOW(), INTERVAL 48 HOUR)
+            ");
+            $stats['late_approvals'] = $stmt->fetch(PDO::FETCH_ASSOC)['count'];
+            
+            $stmt = $pdo->query("
+                SELECT COUNT(*) as count FROM autism_session_notes 
+                WHERE status IN ('completed', 'pending_approval')
+            ");
+            $stats['pending_approvals'] = $stmt->fetch(PDO::FETCH_ASSOC)['count'];
+        }
+        
     } else {
         // Direct Care Staff/Technician - see only their work
         $stmt = $pdo->prepare("
@@ -122,18 +138,24 @@ switch ($_SESSION['access_level']) {
         $role_actions = [
             ['url' => '/clients', 'label' => '👥 Client Management', 'class' => 'action-btn'],
             ['url' => '/billing', 'label' => '💰 Billing System', 'class' => 'action-btn'],
+            ['url' => '/reports/billing', 'label' => '📊 Billing Reports', 'class' => 'action-btn'],
+            ['url' => '/supervisor_reports', 'label' => '📈 Supervisor Reports', 'class' => 'action-btn'],
+            ['url' => '/supervisor_approvals', 'label' => '✅ Approvals', 'class' => 'action-btn'],
             ['url' => '/admin', 'label' => '🔧 Admin Panel', 'class' => 'action-btn admin-panel'],
             ['url' => '/role-switcher', 'label' => '🔄 Switch Role', 'class' => 'action-btn secondary'],
             ['url' => '/staff', 'label' => '📱 Staff Portal', 'class' => 'action-btn secondary'],
             ['url' => '/schedule', 'label' => '📅 Schedules', 'class' => 'action-btn'],
-            ['url' => '/reports', 'label' => '📊 Reports', 'class' => 'action-btn']
+            ['url' => '/reports', 'label' => '📊 All Reports', 'class' => 'action-btn']
         ];
         break;
     case 4: // Supervisor
         $role_actions = [
+            ['url' => '/supervisor_reports', 'label' => '📈 Supervisor Reports', 'class' => 'action-btn btn-primary'],
             ['url' => '/clients', 'label' => '👥 Team Clients', 'class' => 'action-btn'],
+            ['url' => '/supervisor_approvals', 'label' => '✅ Approvals', 'class' => 'action-btn'],
             ['url' => '/supervisor', 'label' => '📋 Supervision Portal', 'class' => 'action-btn'],
-            ['url' => '/billing', 'label' => '💰 Billing Reports', 'class' => 'action-btn'],
+            ['url' => '/billing', 'label' => '💰 Billing Dashboard', 'class' => 'action-btn'],
+            ['url' => '/reports/billing', 'label' => '📊 Billing Reports', 'class' => 'action-btn'],
             ['url' => '/staff', 'label' => '📱 Staff Portal', 'class' => 'action-btn secondary']
         ];
         break;
@@ -141,7 +163,8 @@ switch ($_SESSION['access_level']) {
         $role_actions = [
             ['url' => '/clients/secure', 'label' => '👥 My Clients', 'class' => 'action-btn'],
             ['url' => '/case-manager', 'label' => '📋 Treatment Plans', 'class' => 'action-btn'],
-            ['url' => '/billing', 'label' => '💰 Billing', 'class' => 'action-btn'],
+            ['url' => '/billing', 'label' => '💰 Billing Dashboard', 'class' => 'action-btn'],
+            ['url' => '/reports/billing', 'label' => '📊 Billing Reports', 'class' => 'action-btn'],
             ['url' => '/staff', 'label' => '📱 Staff Portal', 'class' => 'action-btn secondary']
         ];
         break;
@@ -450,6 +473,16 @@ switch ($_SESSION['access_level']) {
                         <h3><?php echo $stats['active_plans'] ?? 0; ?></h3>
                         <p>Active Treatment Plans</p>
                     </div>
+                    <?php if ($_SESSION['access_level'] >= 4): ?>
+                        <div class="stat-card" style="border: 2px solid #dc2626;">
+                            <h3 style="color: #dc2626;"><?php echo $stats['late_approvals'] ?? 0; ?></h3>
+                            <p>Late Approvals (>48hr)</p>
+                        </div>
+                        <div class="stat-card">
+                            <h3 style="color: #059669;"><?php echo $stats['pending_approvals'] ?? 0; ?></h3>
+                            <p>Pending Approvals</p>
+                        </div>
+                    <?php endif; ?>
                 <?php else: ?>
                     <div class="stat-card">
                         <h3><?php echo $stats['my_sessions_month'] ?? 0; ?></h3>

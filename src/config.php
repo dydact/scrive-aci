@@ -23,18 +23,20 @@ define('SESSION_TIMEOUT', 3600); // 1 hour
 define('MAX_LOGIN_ATTEMPTS', 5);
 define('PASSWORD_MIN_LENGTH', 8);
 
-// Medicaid billing settings
-define('MEDICAID_PROVIDER_ID', '1234567890');
-define('ORGANIZATION_NPI', '1234567890');
-define('TAXONOMY_CODE', '261QM0850X');
+// Medicaid billing settings - American Caregivers Inc
+define('MEDICAID_PROVIDER_ID', '1013104314');
+define('ORGANIZATION_NPI', '1013104314');
+define('ORGANIZATION_TAX_ID', '52-2305229');
+define('TAXONOMY_CODE', '251C00000X'); // Home Infusion Therapy Services
 
-// Email settings
-define('SMTP_HOST', 'localhost');
+// Email settings - Using webhost mail server (to be configured)
+define('SMTP_HOST', 'localhost'); // Will be updated with webhost SMTP
 define('SMTP_PORT', 587);
-define('SMTP_USERNAME', '');
-define('SMTP_PASSWORD', '');
+define('SMTP_USERNAME', ''); // To be configured
+define('SMTP_PASSWORD', ''); // To be configured
 define('FROM_EMAIL', 'noreply@acgcares.com');
 define('CONTACT_EMAIL', 'contact@acgcares.com');
+define('MAIL_ENABLED', false); // Set to true when mail server is configured
 
 // File paths
 define('UPLOADS_DIR', __DIR__ . '/../uploads');

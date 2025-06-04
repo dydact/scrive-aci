@@ -323,9 +323,9 @@ try {
                 <h3>🔧 System Administration</h3>
                 <p>Manage system configurations, integrations, and maintenance tasks.</p>
                 <div class="admin-actions">
-                    <a href="admin_backup.php" class="admin-link">Backup & Restore</a>
+                    <a href="/autism_waiver_app/admin_database.php" class="admin-link">Database Management</a>
+                    <a href="admin_backup.php" class="admin-link secondary">Backup & Restore</a>
                     <a href="admin_integrations.php" class="admin-link secondary">Integrations</a>
-                    <a href="admin_maintenance.php" class="admin-link secondary">Maintenance Mode</a>
                 </div>
             </div>
             

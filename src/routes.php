@@ -29,16 +29,21 @@ $routes = [
     'client/(\d+)' => 'autism_waiver_app/client_detail.php?id=$1',
     
     // Billing & Financial
-    'billing' => 'autism_waiver_app/billing_integration.php',
-    'billing/dashboard' => 'autism_waiver_app/billing_dashboard.php',
+    'billing' => 'autism_waiver_app/billing/billing_dashboard.php',
+    'billing/dashboard' => 'autism_waiver_app/billing/billing_dashboard.php',
     'billing/payroll' => 'autism_waiver_app/payroll_report.php',
-    'billing/claims' => 'autism_waiver_app/billing_claims.php',
+    'billing/claims' => 'autism_waiver_app/billing/claim_management.php',
+    'billing/payments' => 'autism_waiver_app/billing/payment_posting.php',
+    'billing/denials' => 'autism_waiver_app/billing/denial_management.php',
     'billing/edi' => 'autism_waiver_app/edi_processing.php',
+    'billing/edi/process' => 'autism_waiver_app/edi/process_remittance.php',
     
     // Staff Portal (formerly Mobile Portal)
     'staff' => 'autism_waiver_app/staff_portal_router.php',
+    'staff/dashboard' => 'autism_waiver_app/staff_dashboard.php',
     'staff/clock' => 'autism_waiver_app/api_time_clock.php',
     'staff/notes' => 'autism_waiver_app/new_session.php',
+    'staff/notes/edit' => 'autism_waiver_app/edit_session.php',
     'staff/notes/iiss' => 'autism_waiver_app/iiss_session_note.php',
     'staff/schedule' => 'autism_waiver_app/employee_schedule.php',
     'staff/clients' => 'autism_waiver_app/employee_portal.php',
@@ -77,8 +82,8 @@ $routes = [
     
     // Help & Support
     'help' => 'help_center.php',
-    'help/guide' => 'help_guide.php',
-    'help/training' => 'training.php',
+    'help/guide' => 'autism_waiver_app/help_guide.php',
+    'training' => 'autism_waiver_app/training.php',
     
     // Role Switcher
     'role-switcher' => 'autism_waiver_app/admin_role_switcher.php',

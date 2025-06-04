@@ -56,9 +56,12 @@ RUN mkdir -p /etc/ssl/certs && \
 
 # Copy Apache configuration
 COPY apache/iris.conf /etc/apache2/conf.d/
+COPY apache/aci-domain.conf /etc/apache2/conf.d/
 
 # Enable Apache modules needed for the application
-RUN sed -i '/LoadModule rewrite_module/s/^#//g' /etc/apache2/httpd.conf
+RUN sed -i '/LoadModule rewrite_module/s/^#//g' /etc/apache2/httpd.conf && \
+    sed -i '/LoadModule ssl_module/s/^#//g' /etc/apache2/httpd.conf && \
+    sed -i '/LoadModule socache_shmcb_module/s/^#//g' /etc/apache2/httpd.conf
 
 # Disable OpenEMR configuration that overrides DocumentRoot
 RUN mv /etc/apache2/conf.d/openemr.conf /etc/apache2/conf.d/openemr.conf.disabled

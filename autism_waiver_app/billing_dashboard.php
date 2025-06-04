@@ -390,14 +390,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     </div>
                     <div class="card-body">
                         <div class="d-grid gap-2">
-                            <a href="<?= UrlManager::url('reports', ['tab' => 'billing']) ?>" class="btn btn-primary">
+                            <a href="<?= UrlManager::url('billing_reports') ?>" class="btn btn-primary">
                                 <i class="fas fa-chart-bar me-2"></i>
-                                Generate Report
+                                View Reports
                             </a>
-                            <button class="btn btn-success" onclick="approveAll()">
-                                <i class="fas fa-check-double me-2"></i>
-                                Approve All Pending
-                            </button>
+                            <a href="<?= UrlManager::url('billing_claims') ?>" class="btn btn-success">
+                                <i class="fas fa-file-medical me-2"></i>
+                                Manage Claims
+                            </a>
                             <button class="btn btn-info" onclick="exportToCsv()">
                                 <i class="fas fa-file-csv me-2"></i>
                                 Export to CSV

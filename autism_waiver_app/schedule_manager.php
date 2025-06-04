@@ -39,7 +39,7 @@ try {
     
     $stmt = $pdo->prepare("
         SELECT s.*, 
-               sm.first_name as staff_first_name, sm.last_name as staff_last_name,
+               sm.full_name as staff_name,
                c.first_name as client_first_name, c.last_name as client_last_name,
                st.service_name, st.service_code
         FROM autism_schedules s
@@ -53,11 +53,11 @@ try {
     $schedules = $stmt->fetchAll(PDO::FETCH_ASSOC);
     
     // Get staff members
-    $stmt = $pdo->query("SELECT * FROM autism_staff_members WHERE status = 'active' ORDER BY last_name, first_name");
+    $stmt = $pdo->query("SELECT * FROM autism_staff_members ORDER BY full_name");
     $staff_members = $stmt->fetchAll(PDO::FETCH_ASSOC);
     
     // Get clients
-    $stmt = $pdo->query("SELECT * FROM autism_clients WHERE status = 'active' ORDER BY last_name, first_name");
+    $stmt = $pdo->query("SELECT * FROM autism_clients ORDER BY last_name, first_name");
     $clients = $stmt->fetchAll(PDO::FETCH_ASSOC);
     
     // Get service types
@@ -206,7 +206,7 @@ try {
                                             <?= htmlspecialchars($schedule['client_first_name'] . ' ' . $schedule['client_last_name']) ?>
                                         </div>
                                         <div class="schedule-staff">
-                                            <?= htmlspecialchars($schedule['staff_first_name'] . ' ' . $schedule['staff_last_name']) ?>
+                                            <?= htmlspecialchars($schedule['staff_name'] ?? 'Unassigned') ?>
                                         </div>
                                         <?php if ($schedule['service_name']): ?>
                                             <div style="font-size: 0.75rem; color: #059669;">
@@ -234,7 +234,7 @@ try {
                         <option value="">Select Staff</option>
                         <?php foreach ($staff_members as $staff): ?>
                             <option value="<?= $staff['id'] ?>">
-                                <?= htmlspecialchars($staff['last_name'] . ', ' . $staff['first_name']) ?>
+                                <?= htmlspecialchars($staff['full_name']) ?>
                             </option>
                         <?php endforeach; ?>
                     </select>

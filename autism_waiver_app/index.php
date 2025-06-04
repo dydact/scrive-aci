@@ -719,6 +719,21 @@ $pageTitle = "Scrive - AI-Powered Autism Waiver ERM";
                         <i class="fas fa-tools me-2"></i>Admin Testing
                     </a>
                 </div>
+
+                <!-- Training Center -->
+                <div class="feature-card">
+                    <span class="status-badge status-active">Complete</span>
+                    <div class="feature-icon">
+                        <i class="fas fa-graduation-cap"></i>
+                    </div>
+                    <h3 class="feature-title">Training Center</h3>
+                    <p class="feature-description">
+                        Comprehensive training modules for all staff with progress tracking, certifications, and role-based learning paths.
+                    </p>
+                    <a href="training.php" class="btn btn-modern btn-modern-primary">
+                        <i class="fas fa-book-open me-2"></i>Access Training
+                    </a>
+                </div>
             </div>
         </div>
     </section>

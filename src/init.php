@@ -39,6 +39,7 @@ function requireAuth($minAccessLevel = 1) {
  */
 function getCurrentUser() {
     return [
+        'id' => $_SESSION['user_id'] ?? null, // Added for consistency
         'user_id' => $_SESSION['user_id'] ?? null,
         'username' => $_SESSION['username'] ?? null,
         'first_name' => $_SESSION['first_name'] ?? '',

@@ -364,12 +364,12 @@ try {
                 <div class="amount">$<?= number_format($stats['pending_amount'], 2) ?></div>
             </div>
             <div class="stat-card">
-                <h3><?= $stats['paid_this_month'] ?></h3>
+                <h3><?= $stats['paid_this_month'] ?? 0 ?></h3>
                 <p>Paid This Month</p>
-                <div class="amount">$<?= number_format($stats['collected_this_month'], 2) ?></div>
+                <div class="amount">$<?= number_format($stats['collected_this_month'] ?? 0, 2) ?></div>
             </div>
             <div class="stat-card highlight">
-                <h3>$<?= number_format($stats['outstanding_receivables'], 2) ?></h3>
+                <h3>$<?= number_format($stats['outstanding_receivables'] ?? 0, 2) ?></h3>
                 <p>Outstanding Receivables</p>
             </div>
         </div>

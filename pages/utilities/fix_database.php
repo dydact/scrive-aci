@@ -164,6 +164,110 @@ try {
     $stmt->execute();
     echo "✓ Sample service types added\n";
     
+    // Create waiver types table
+    echo "Creating autism_waiver_types...\n";
+    $sql6 = "CREATE TABLE IF NOT EXISTS `autism_waiver_types` (
+        `id` INT(11) NOT NULL AUTO_INCREMENT,
+        `waiver_code` VARCHAR(20) NOT NULL,
+        `waiver_name` VARCHAR(100) NOT NULL,
+        `description` TEXT,
+        `is_active` TINYINT(1) DEFAULT 1,
+        `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        PRIMARY KEY (`id`),
+        UNIQUE KEY `idx_waiver_code` (`waiver_code`)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci";
+    
+    $pdo->exec($sql6);
+    echo "✓ autism_waiver_types created\n";
+    
+    // Insert waiver types
+    echo "Inserting waiver types...\n";
+    $stmt = $pdo->prepare("
+        INSERT IGNORE INTO autism_waiver_types (waiver_code, waiver_name, description) VALUES 
+        ('AW', 'Autism Waiver', 'Maryland Autism Waiver Program for children and adults with Autism Spectrum Disorder'),
+        ('CFC', 'Community First Choice', 'Community-based services and supports for individuals with disabilities'),
+        ('CP', 'Community Pathways', 'Supports for individuals with developmental disabilities in community settings'),
+        ('FCP', 'Family Supports', 'Family-centered supports for individuals with developmental disabilities'),
+        ('TBI', 'Brain Injury Waiver', 'Services for individuals with traumatic brain injuries')
+    ");
+    $stmt->execute();
+    echo "✓ Waiver types added\n";
+    
+    // Create client authorizations table
+    echo "Creating autism_client_authorizations...\n";
+    $sql7 = "CREATE TABLE IF NOT EXISTS `autism_client_authorizations` (
+        `id` INT(11) NOT NULL AUTO_INCREMENT,
+        `client_id` INT(11) NOT NULL,
+        `waiver_type_id` INT(11) NOT NULL,
+        `service_type_id` INT(11) NOT NULL,
+        `fiscal_year` INT(4) NOT NULL,
+        `fiscal_year_start` DATE NOT NULL,
+        `fiscal_year_end` DATE NOT NULL,
+        `weekly_hours` DECIMAL(5,2),
+        `yearly_hours` DECIMAL(7,2),
+        `used_hours` DECIMAL(7,2) DEFAULT 0,
+        `remaining_hours` DECIMAL(7,2),
+        `authorization_number` VARCHAR(50),
+        `start_date` DATE NOT NULL,
+        `end_date` DATE NOT NULL,
+        `status` ENUM('active','expired','suspended','terminated') DEFAULT 'active',
+        `notes` TEXT,
+        `created_by` INT(11),
+        `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        `updated_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+        PRIMARY KEY (`id`),
+        KEY `idx_client` (`client_id`),
+        KEY `idx_waiver` (`waiver_type_id`),
+        KEY `idx_service` (`service_type_id`),
+        KEY `idx_fiscal_year` (`fiscal_year`),
+        KEY `idx_dates` (`start_date`, `end_date`)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci";
+    
+    $pdo->exec($sql7);
+    echo "✓ autism_client_authorizations created\n";
+    
+    // Add waiver_type_id to clients table if not exists
+    echo "Updating clients table...\n";
+    $stmt = $pdo->query("SHOW COLUMNS FROM autism_clients LIKE 'waiver_type_id'");
+    if ($stmt->rowCount() == 0) {
+        $pdo->exec("ALTER TABLE autism_clients ADD COLUMN waiver_type_id INT(11) AFTER ma_number, ADD KEY idx_waiver_type (waiver_type_id)");
+        echo "✓ Added waiver_type_id to clients table\n";
+    }
+    
+    // Create autism_sessions table
+    echo "Creating autism_sessions...\n";
+    $sql8 = "CREATE TABLE IF NOT EXISTS `autism_sessions` (
+        `id` INT(11) NOT NULL AUTO_INCREMENT,
+        `client_id` INT(11) NOT NULL,
+        `staff_id` INT(11),
+        `service_type_id` INT(11),
+        `session_date` DATE NOT NULL,
+        `start_time` TIME NOT NULL,
+        `end_time` TIME NOT NULL,
+        `duration_hours` DECIMAL(5,2),
+        `session_type` VARCHAR(50),
+        `location` VARCHAR(100),
+        `goals_addressed` TEXT,
+        `interventions` TEXT,
+        `client_response` TEXT,
+        `notes` TEXT,
+        `status` ENUM('scheduled','completed','cancelled','no_show') DEFAULT 'scheduled',
+        `billing_status` ENUM('unbilled','billed','paid','denied') DEFAULT 'unbilled',
+        `created_by` INT(11),
+        `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        `updated_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+        PRIMARY KEY (`id`),
+        KEY `idx_client` (`client_id`),
+        KEY `idx_staff` (`staff_id`),
+        KEY `idx_service` (`service_type_id`),
+        KEY `idx_date` (`session_date`),
+        KEY `idx_status` (`status`),
+        KEY `idx_billing` (`billing_status`)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci";
+    
+    $pdo->exec($sql8);
+    echo "✓ autism_sessions created\n";
+    
     // Check final table list
     echo "\nFinal table check:\n";
     $stmt = $pdo->query("SHOW TABLES LIKE 'autism_%'");

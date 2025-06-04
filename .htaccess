@@ -81,6 +81,7 @@ RewriteRule ^forms/treatment/?$ autism_waiver_app/treatment_plan_manager.php [L]
 
 # API Endpoints
 RewriteRule ^api/time-clock/?$ autism_waiver_app/api_time_clock.php [L]
+RewriteRule ^api/supervisor-approve/?$ autism_waiver_app/api_supervisor.php [L]
 RewriteRule ^api/clients/?$ autism_waiver_app/api.php?endpoint=clients [L]
 RewriteRule ^api/sessions/?$ autism_waiver_app/api.php?endpoint=sessions [L]
 RewriteRule ^api/billing/?$ autism_waiver_app/api.php?endpoint=billing [L]

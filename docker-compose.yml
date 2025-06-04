@@ -45,6 +45,9 @@ services:
       DB_USER: openemr
       DB_PASS: openemr
       APP_ENV: development
+      # Domain configuration
+      VIRTUAL_HOST: aci.dydact.io,www.aci.dydact.io,staff.aci.dydact.io,admin.aci.dydact.io,api.aci.dydact.io
+      SERVER_NAME: aci.dydact.io
     depends_on:
       - mysql
     networks:
