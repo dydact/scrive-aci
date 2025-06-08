@@ -5,7 +5,7 @@ echo "Starting Scrive ACI..."
 
 # Initialize database first (synchronously, not in background)
 echo "Initializing database..."
-if /docker/init-database.sh; then
+if /docker/init-database-fixed.sh; then
     echo "Database initialized successfully"
 else
     echo "Database initialization had issues, but continuing..."

@@ -123,6 +123,7 @@ CREATE TABLE IF NOT EXISTS autism_users (
     password_hash VARCHAR(255) NOT NULL,
     email VARCHAR(255),
     full_name VARCHAR(255),
+    role VARCHAR(50) DEFAULT 'User',
     access_level INT(1) DEFAULT 1,
     status ENUM('active','inactive','pending') DEFAULT 'active',
     last_login TIMESTAMP NULL,
@@ -151,9 +152,9 @@ CREATE TABLE IF NOT EXISTS autism_staff_members (
     KEY idx_employee_id (employee_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
--- Insert default admin user (password: admin123)
-INSERT IGNORE INTO autism_users (username, password_hash, email, full_name, access_level) 
-VALUES ('admin', '\$2y\$10\$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 'admin@americancaregivers.com', 'System Administrator', 5);
+-- Insert default admin user (password: AdminPass123!)
+INSERT IGNORE INTO autism_users (username, password_hash, email, full_name, role, access_level) 
+VALUES ('admin', '$2y$10$VZF3KjJzCV1lqH5.Qm8Tq.0H9Eo5jF1Bxh8WJZxO1fHNx0jNqVkHy', 'admin@americancaregivers.com', 'System Administrator', 'Administrator', 5);
 
 -- Insert sample clients
 INSERT IGNORE INTO autism_clients (first_name, last_name, ma_number) VALUES 

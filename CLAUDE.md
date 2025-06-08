@@ -44,11 +44,14 @@ npm run typecheck # Check TypeScript types
 
 ## Architecture
 
+⚠️ **CRITICAL**: See [SYSTEM_ARCHITECTURE_MAP.md](./SYSTEM_ARCHITECTURE_MAP.md) for comprehensive component mapping, paths, and API endpoints to prevent authentication/routing issues.
+
 ### Core Structure
 - **OpenEMR Base**: Uses OpenEMR 7.0.2 Docker image with custom branding as "Iris EMR"
 - **Multi-Portal System**: Role-based portals (staff, case manager, supervisor, admin)
 - **Clean URLs**: Apache mod_rewrite strips .php extensions (handled by UrlManager.php)
 - **Database**: MariaDB with autism_* prefixed tables for custom functionality
+- **Document Root**: `/var/www/localhost/htdocs` in Docker container
 
 ### Key Design Patterns
 1. **Role-Based Access Control (RBAC)**:
@@ -90,14 +93,84 @@ npm run typecheck # Check TypeScript types
 3. **Broken links**: Use absolute paths (/autism_waiver_app/file.php)
 4. **Session timeout**: Check $_SESSION['user_id'] before operations
 
-### Testing Credentials
-- Admin: admin@aci.com / Admin123!
-- Supervisor: supervisor@aci.com / Super123!
-- Case Manager: case@aci.com / Case123!
-- Staff: staff@aci.com / Staff123!
+### Production Login Credentials
+All users now use database authentication (no hardcoded credentials):
+
+| Name | Username/Email | Password | Access Level |
+|------|----------------|----------|--------------|
+| Frank (Supreme Admin) | frank@acgcares.com | Supreme2024! | 6 |
+| Mary Emah (CEO) | mary.emah@acgcares.com | CEO2024! | 5 |
+| Dr. Ukpeh | drukpeh or drukpeh@duck.com | Executive2024! | 5 |
+| Amanda Georgi (HR) | amanda.georgi@acgcares.com | HR2024! | 4 |
+| Edwin Recto (Clinical) | edwin.recto@acgcares.com | Clinical2024! | 4 |
+| Pam Pastor (Billing) | pam.pastor@acgcares.com | Billing2024! | 4 |
+| Yanika Crosse (Billing) | yanika.crosse@acgcares.com | Billing2024! | 4 |
+| Alvin Ukpeh (SysAdmin) | alvin.ukpeh@acgcares.com | SysAdmin2024! | 5 |
+
+### Authentication Fix Applied ✅ COMPLETED
+- **FIXED**: simple_login.php now uses database authentication (autism_waiver_app/simple_login.php:22)
+- **FIXED**: Removed hardcoded credentials from authenticateAutismUser function (src/openemr_integration.php:107)
+- **FIXED**: Updated SQL query to check `status = 'active'` instead of non-existent `is_active` column
+- **FIXED**: All password hashes updated in database using PHP password_hash() function
+- **VERIFIED**: All login credentials tested and working at aci.dydact.io
+- **PRODUCTION STATUS**: ✅ Ready - Database authentication fully functional
+
+### Container Status
+- Docker containers restarted and running
+- All user accounts properly created in autism_users table
+- Production authentication working for all credential combinations:
+  - Username/password authentication
+  - Email/password authentication
 
 ### Important Security Notes
 - All user inputs must be sanitized with htmlspecialchars()
 - Use prepared statements for all database queries
+
+## Authentication Troubleshooting
+
+### Common Issues and Fixes
+
+1. **Login Not Working**
+   - Check Apache DocumentRoot in `apache/aci-dydact-io.conf` (should be `/var/www/localhost/htdocs`)
+   - Verify `sites/americancaregivers/sqlconf.php` has database credentials
+   - Ensure password hashes were created in web context, not CLI
+   - Check volume mounts aren't overriding config files
+
+2. **"Page Not Found" Errors**
+   - Verify .htaccess is in place and Apache AllowOverride is set to All
+   - Check file exists at mapped path (see SYSTEM_ARCHITECTURE_MAP.md)
+   - Ensure URL rewriting is enabled in Apache
+
+3. **Database Connection Failed**
+   - Container DB host is `mysql`, not `localhost`
+   - Check MySQL container is running: `docker ps`
+   - Verify credentials match docker-compose.yml
+
+4. **Password Verification Fails**
+   - Regenerate password hashes from web context, not CLI
+   - Use the fix script: `curl http://localhost/fix_all_passwords`
+
+### Quick Diagnostic Commands
+```bash
+# Check container status
+docker ps
+
+# View container logs
+docker logs scrive-aci-iris-emr-1
+
+# Test database connection
+docker exec scrive-aci-iris-emr-1 mysql -h mysql -u openemr -popenemr -e "SELECT COUNT(*) FROM autism_users;"
+
+# Check file locations
+docker exec scrive-aci-iris-emr-1 ls -la /var/www/localhost/htdocs/src/
+
+# Test authentication directly
+docker exec scrive-aci-iris-emr-1 php -r "
+require_once '/var/www/localhost/htdocs/src/config.php';
+require_once '/var/www/localhost/htdocs/src/openemr_integration.php';
+\$result = authenticateOpenEMRUser('admin', 'AdminPass123!');
+echo \$result ? 'Auth works' : 'Auth failed';
+"
+```
 - Check access_level before sensitive operations
 - Audit logging enabled for billing and clinical changes

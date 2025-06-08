@@ -47,20 +47,21 @@ RUN chmod +x /var/www/localhost/htdocs/scripts/*.sh
 # Copy config directory
 COPY config /var/www/localhost/htdocs/config
 
-# SSL certificates will be mounted at runtime
-# COPY ssl/certs/aci.dydact.io.crt /etc/ssl/certs/aci.dydact.io.crt
-# COPY ssl/certs/aci.dydact.io.key /etc/ssl/private/aci.dydact.io.key
+# Generate self-signed SSL certificates
+RUN mkdir -p /etc/ssl/certs && \
+    openssl req -x509 -nodes -days 365 -newkey rsa:2048 \
+    -keyout /etc/ssl/private/webserver.key.pem \
+    -out /etc/ssl/certs/webserver.cert.pem \
+    -subj "/C=US/ST=MD/L=Silver Spring/O=American Caregivers/CN=aci.dydact.io"
 
 # Copy Apache configuration
 COPY apache/iris.conf /etc/apache2/conf.d/
 COPY apache/aci-docker.conf /etc/apache2/conf.d/
-COPY apache/aci-ssl.conf /etc/apache2/conf.d/
 
 # Enable Apache modules needed for the application
 RUN sed -i '/LoadModule rewrite_module/s/^#//g' /etc/apache2/httpd.conf && \
     sed -i '/LoadModule ssl_module/s/^#//g' /etc/apache2/httpd.conf && \
-    sed -i '/LoadModule socache_shmcb_module/s/^#//g' /etc/apache2/httpd.conf && \
-    sed -i '/LoadModule headers_module/s/^#//g' /etc/apache2/httpd.conf
+    sed -i '/LoadModule socache_shmcb_module/s/^#//g' /etc/apache2/httpd.conf
 
 # Disable OpenEMR configuration that overrides DocumentRoot
 RUN mv /etc/apache2/conf.d/openemr.conf /etc/apache2/conf.d/openemr.conf.disabled

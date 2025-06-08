@@ -1,5 +1,7 @@
 <?php
 session_start();
+require_once dirname(__FILE__) . '/../src/config.php';
+require_once dirname(__FILE__) . '/../src/openemr_integration.php';
 
 // If already logged in, redirect to dashboard
 if (isset($_SESSION['user_id'])) {
@@ -13,65 +15,29 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     $username = $_POST['username'] ?? '';
     $password = $_POST['password'] ?? '';
     
-    // HARDCODED ADMIN CREDENTIALS FOR IMMEDIATE ACCESS
-    $valid_credentials = [
-        'admin' => [
-            'password' => 'AdminPass123!',
-            'user_id' => 1,
-            'first_name' => 'System',
-            'last_name' => 'Administrator',
-            'access_level' => 5,
-            'user_type' => 'admin',
-            'role_name' => 'Administrator'
-        ],
-        'dsp_test' => [
-            'password' => 'TestPass123!',
-            'user_id' => 2,
-            'first_name' => 'Sarah',
-            'last_name' => 'Johnson',
-            'access_level' => 2,
-            'user_type' => 'staff',
-            'role_name' => 'Direct Support Professional'
-        ],
-        'cm_test' => [
-            'password' => 'TestPass123!',
-            'user_id' => 3,
-            'first_name' => 'Michael',
-            'last_name' => 'Brown',
-            'access_level' => 3,
-            'user_type' => 'staff',
-            'role_name' => 'Case Manager'
-        ],
-        'supervisor_test' => [
-            'password' => 'TestPass123!',
-            'user_id' => 4,
-            'first_name' => 'Jennifer',
-            'last_name' => 'Davis',
-            'access_level' => 4,
-            'user_type' => 'staff',
-            'role_name' => 'Supervisor'
-        ]
-    ];
-    
     if (empty($username) || empty($password)) {
         $error = 'Please enter both username and password.';
-    } elseif (isset($valid_credentials[$username]) && $valid_credentials[$username]['password'] === $password) {
-        // Valid login - set session variables
-        $user = $valid_credentials[$username];
-        $_SESSION['user_id'] = $user['user_id'];
-        $_SESSION['username'] = $username;
-        $_SESSION['first_name'] = $user['first_name'];
-        $_SESSION['last_name'] = $user['last_name'];
-        $_SESSION['access_level'] = $user['access_level'];
-        $_SESSION['user_type'] = $user['user_type'];
-        $_SESSION['role_name'] = $user['role_name'] ?? 'Staff';
-        $_SESSION['staff_member_id'] = $user['user_id']; // For staff assignments
-        
-        // Redirect to dashboard
-        header('Location: /src/dashboard.php');
-        exit;
     } else {
-        $error = 'Invalid username or password.';
+        // Use database authentication
+        $user = authenticateOpenEMRUser($username, $password);
+        
+        if ($user) {
+            // Set session variables
+            $_SESSION['user_id'] = $user['user_id'];
+            $_SESSION['username'] = $user['username'];
+            $_SESSION['first_name'] = $user['first_name'];
+            $_SESSION['last_name'] = $user['last_name'];
+            $_SESSION['email'] = $user['email'];
+            $_SESSION['access_level'] = $user['access_level'];
+            $_SESSION['role_name'] = $user['role'] ?? $user['title'] ?? 'User';
+            $_SESSION['login_time'] = time();
+            
+            // Redirect to dashboard
+            header('Location: /src/dashboard.php');
+            exit;
+        } else {
+            $error = 'Invalid username or password.';
+        }
     }
 }
 ?>
@@ -80,7 +46,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Login - Autism Waiver Management System</title>
+    <title>Login - American Caregivers Inc</title>
     <style>
         * {
             margin: 0;
@@ -207,13 +173,6 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
             margin-bottom: 0.25rem;
         }
         
-        .credentials-help code {
-            background: #e5e7eb;
-            padding: 0.125rem 0.25rem;
-            border-radius: 3px;
-            font-family: monospace;
-        }
-        
         .company-info {
             text-align: center;
             margin-top: 1.5rem;
@@ -227,8 +186,8 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
 <body>
     <div class="login-container">
         <div class="login-header">
-            <h1>🧠 Autism Waiver System</h1>
-            <p>American Caregivers Inc</p>
+            <h1>American Caregivers Inc</h1>
+            <p>Autism Waiver Management System</p>
         </div>
         
         <div class="login-body">
@@ -238,7 +197,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
             
             <form method="POST">
                 <div class="form-group">
-                    <label for="username">Username</label>
+                    <label for="username">Username or Email</label>
                     <input type="text" 
                            id="username" 
                            name="username" 
@@ -261,12 +220,10 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
             </form>
             
             <div class="credentials-help">
-                <h3>Test Credentials:</h3>
+                <h3>Login Information:</h3>
                 <ul>
-                    <li><strong>Admin:</strong> <code>admin</code> / <code>AdminPass123!</code></li>
-                    <li><strong>DSP:</strong> <code>dsp_test</code> / <code>TestPass123!</code></li>
-                    <li><strong>Case Manager:</strong> <code>cm_test</code> / <code>TestPass123!</code></li>
-                    <li><strong>Supervisor:</strong> <code>supervisor_test</code> / <code>TestPass123!</code></li>
+                    <li>Use your assigned username or email and password</li>
+                    <li>Contact your supervisor if you need login assistance</li>
                 </ul>
             </div>
             

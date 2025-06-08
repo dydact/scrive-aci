@@ -102,102 +102,36 @@ function authenticateOpenEMRUser($username, $password) {
 }
 
 /**
- * Fallback authentication for autism waiver specific users
+ * Authenticate autism waiver specific users from database
  */
 function authenticateAutismUser($username, $password) {
-    // Hardcoded users for immediate access
-    $hardcoded_users = [
-        'admin' => [
-            'password' => 'AdminPass123!',
-            'user_id' => 1,
-            'staff_id' => 1,
-            'first_name' => 'System',
-            'last_name' => 'Administrator',
-            'email' => 'admin@aci.com',
-            'job_title' => 'Administrator',
-            'role_name' => 'Administrator',
-            'access_level' => 5
-        ],
-        'dsp_test' => [
-            'password' => 'TestPass123!',
-            'user_id' => 2,
-            'staff_id' => 2,
-            'first_name' => 'Sarah',
-            'last_name' => 'Johnson',
-            'email' => 'dsp@aci.com',
-            'job_title' => 'Direct Support Professional',
-            'role_name' => 'Direct Support Professional',
-            'access_level' => 2
-        ],
-        'cm_test' => [
-            'password' => 'TestPass123!',
-            'user_id' => 3,
-            'staff_id' => 3,
-            'first_name' => 'Michael',
-            'last_name' => 'Brown',
-            'email' => 'cm@aci.com',
-            'job_title' => 'Case Manager',
-            'role_name' => 'Case Manager',
-            'access_level' => 3
-        ],
-        'supervisor_test' => [
-            'password' => 'TestPass123!',
-            'user_id' => 4,
-            'staff_id' => 4,
-            'first_name' => 'Jennifer',
-            'last_name' => 'Davis',
-            'email' => 'supervisor@aci.com',
-            'job_title' => 'Clinical Supervisor',
-            'role_name' => 'Supervisor',
-            'access_level' => 4
-        ]
-    ];
-    
-    // Check hardcoded users first
-    if (isset($hardcoded_users[$username]) && $hardcoded_users[$username]['password'] === $password) {
-        $user = $hardcoded_users[$username];
-        return [
-            'user_id' => $user['user_id'],
-            'username' => $username,
-            'staff_id' => $user['staff_id'],
-            'first_name' => $user['first_name'],
-            'last_name' => $user['last_name'],
-            'email' => $user['email'],
-            'job_title' => $user['job_title'],
-            'role_name' => $user['role_name'],
-            'access_level' => $user['access_level']
-        ];
-    }
-    
     try {
         $pdo = getDatabase();
         
-        // Then check database
+        // Check database for users - support both username and email
         $stmt = $pdo->prepare("
             SELECT 
-                u.id, u.username, u.password_hash, u.staff_id,
-                s.first_name, s.last_name, s.email, s.job_title,
-                r.role_name, r.role_level as access_level
-            FROM autism_users u
-            JOIN autism_staff_members s ON u.staff_id = s.staff_id
-            LEFT JOIN autism_user_roles ur ON s.staff_id = ur.staff_id AND ur.is_active = 1
-            LEFT JOIN autism_staff_roles r ON ur.role_id = r.role_id
-            WHERE u.username = ? AND u.is_active = 1
+                id, username, password_hash, email, full_name, role, access_level
+            FROM autism_users 
+            WHERE (username = ? OR email = ?) AND status = 'active'
         ");
-        $stmt->execute([$username]);
+        $stmt->execute([$username, $username]);
         $user = $stmt->fetch();
         
         if ($user && password_verify($password, $user['password_hash'])) {
+            // Split full_name into first and last
+            $nameParts = explode(' ', $user['full_name'], 2);
+            $firstName = $nameParts[0] ?? '';
+            $lastName = $nameParts[1] ?? '';
+            
             return [
                 'user_id' => $user['id'],
                 'username' => $user['username'],
-                'staff_id' => $user['staff_id'],
-                'first_name' => $user['first_name'],
-                'last_name' => $user['last_name'],
+                'first_name' => $firstName,
+                'last_name' => $lastName,
                 'email' => $user['email'],
-                'job_title' => $user['job_title'],
-                'role_name' => $user['role_name'] ?: 'Staff',
-                'access_level' => $user['access_level'] ?: 1
+                'role' => $user['role'],
+                'access_level' => $user['access_level']
             ];
         }
         
